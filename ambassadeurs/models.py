@@ -26,15 +26,30 @@ class Ambassadeur(models.Model):
     """
     Modèle représentant un ambassadeur du programme
     """
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='ambassadeur')
-    code_ambassadeur = models.CharField(max_length=10, unique=True)
+    TYPE_CHOICES = [
+        ('vie', 'Vie'),
+        ('non_vie', 'Non-Vie'),
+        ('les_deux', 'Vie et Non-Vie'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE,null=True, related_name='ambassadeur')
+    type_ambassadeur = models.CharField(max_length=10, choices=TYPE_CHOICES, default='non_vie')
+    code_ambassadeur_vie = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    code_ambassadeur_non_vie = models.CharField(max_length=20, blank=True, null=True, unique=True)
     nom_complet = models.CharField(max_length=255)
+    date_naissance = models.DateField(null=True, blank=True)
+    telephone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField()
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.code_ambassadeur} - {self.nom_complet}"
+        if self.type_ambassadeur == 'vie':
+            return f"{self.code_ambassadeur_vie} - {self.nom_complet} (Vie)"
+        elif self.type_ambassadeur == 'non_vie':
+            return f"{self.code_ambassadeur_non_vie} - {self.nom_complet} (Non-Vie)"
+        else:
+            return f"{self.nom_complet} (Vie et Non-Vie)"
     
     def get_solde_points(self, exercice=None):
         """
@@ -57,8 +72,14 @@ class Police(models.Model):
     """
     Modèle représentant une police d'assurance vendue
     """
+    TYPE_CHOICES = [
+        ('vie', 'Vie'),
+        ('non_vie', 'Non-Vie'),
+    ]
+    
     numero_police = models.CharField(max_length=50, unique=True)
     ambassadeur = models.ForeignKey(Ambassadeur, on_delete=models.CASCADE, related_name='polices')
+    type_assurance = models.CharField(max_length=10, choices=TYPE_CHOICES, default='non_vie')
     prime_nette = models.DecimalField(max_digits=10, decimal_places=2)
     statut = models.CharField(max_length=50, default='payé')
     source_systeme = models.CharField(max_length=50, choices=[('ORASS', 'ORASS'), ('HELIOS', 'HELIOS')])
@@ -66,7 +87,7 @@ class Police(models.Model):
     date_creation = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"Police {self.numero_police} - {self.ambassadeur.code_ambassadeur}"
+        return f"Police {self.numero_police} - {self.get_type_assurance_display()} - {self.ambassadeur.nom_complet}"
     
     def save(self, *args, **kwargs):
         # Vérifier si c'est une nouvelle police
@@ -87,17 +108,20 @@ class Police(models.Model):
             if exercice:
                 # Récupérer le pourcentage de points configuré
                 config = Configuration.objects.first()
-                pourcentage = config.pourcentage_points if config else 1.5
+                if self.type_assurance == 'vie':
+                    pourcentage = config.pourcentage_points_vie if config else 1.5
+                else:  # 'non_vie'
+                    pourcentage = config.pourcentage_points_non_vie if config else 1.5
                 
-                # Calculer les points (1,5% de la prime nette par défaut)
+                # Calculer les points
                 montant_points = self.prime_nette * (Decimal(pourcentage) / Decimal(100))
-
                 
                 # Créer la transaction de points
                 Points.objects.create(
                     ambassadeur=self.ambassadeur,
                     police=self,
                     exercice=exercice,
+                    type_assurance=self.type_assurance,
                     montant=montant_points,
                     description=f"Points pour la police {self.numero_police}"
                 )
@@ -110,16 +134,22 @@ class Points(models.Model):
     """
     Modèle représentant les points gagnés par un ambassadeur
     """
+    TYPE_ASSURANCE_CHOICES = [
+        ('vie', 'Vie'),
+        ('non_vie', 'Non-Vie'),
+    ]
+    
     ambassadeur = models.ForeignKey(Ambassadeur, on_delete=models.CASCADE, related_name='points_gagnes')
     police = models.ForeignKey(Police, on_delete=models.CASCADE, related_name='points', null=True, blank=True)
     exercice = models.ForeignKey(Exercice, on_delete=models.CASCADE, related_name='points')
+    type_assurance = models.CharField(max_length=10, choices=TYPE_ASSURANCE_CHOICES, default='non_vie')
     montant = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=255)
     date_expiration = models.DateField(null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.montant} points pour {self.ambassadeur.code_ambassadeur}"
+        return f"{self.montant} points ({self.get_type_assurance_display()}) pour {self.ambassadeur.nom_complet}"
     
     def save(self, *args, **kwargs):
         # Si la date d'expiration n'est pas définie, calculer en fonction de la configuration
@@ -139,11 +169,17 @@ class Configuration(models.Model):
     """
     Modèle pour stocker les configurations du programme
     """
-    pourcentage_points = models.DecimalField(
+    pourcentage_points_vie = models.DecimalField(
         max_digits=5, 
         decimal_places=2, 
         default=1.5,
-        help_text="Pourcentage de la prime nette converti en points"
+        help_text="Pourcentage de la prime nette converti en points pour l'assurance Vie"
+    )
+    pourcentage_points_non_vie = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=1.5,
+        help_text="Pourcentage de la prime nette converti en points pour l'assurance Non-Vie"
     )
     duree_validite_points = models.IntegerField(
         default=365,

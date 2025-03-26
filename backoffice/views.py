@@ -8,6 +8,8 @@ from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
 import pandas as pd
+from django.db.models import Q
+
 import io
 from datetime import datetime, timedelta
 
@@ -527,32 +529,41 @@ def gestion_codes_ambassadeurs(request):
     """
     Vue pour la gestion des codes ambassadeurs
     """
-    # Récupérer tous les codes ambassadeurs
-    codes = Ambassadeur.objects.all().order_by('code_ambassadeur')
+    # Récupérer tous les ambassadeurs
+    ambassadeurs = Ambassadeur.objects.all().order_by('nom_complet')
     
     # Filtrage
+    type_filtre = request.GET.get('type', 'tous')
     statut = request.GET.get('statut')
     recherche = request.GET.get('recherche')
     
+    if type_filtre != 'tous':
+        if type_filtre == 'vie':
+            ambassadeurs = ambassadeurs.filter(type_ambassadeur__in=['vie', 'les_deux'])
+        elif type_filtre == 'non_vie':
+            ambassadeurs = ambassadeurs.filter(type_ambassadeur__in=['non_vie', 'les_deux'])
+    
     if statut == 'associe':
-        codes = codes.filter(user__isnull=False)
+        ambassadeurs = ambassadeurs.filter(user__isnull=False)
     elif statut == 'non_associe':
-        codes = codes.filter(user__isnull=True)
+        ambassadeurs = ambassadeurs.filter(user__isnull=True)
     
     if recherche:
-        codes = codes.filter(
-            code_ambassadeur__icontains=recherche
-        ) | codes.filter(
-            nom_complet__icontains=recherche
+        ambassadeurs = ambassadeurs.filter(
+            Q(code_ambassadeur_vie__icontains=recherche) |
+            Q(code_ambassadeur_non_vie__icontains=recherche) |
+            Q(nom_complet__icontains=recherche) |
+            Q(email__icontains=recherche)
         )
     
     # Pagination
-    paginator = Paginator(codes, 20)
+    paginator = Paginator(ambassadeurs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     context = {
         'page_obj': page_obj,
+        'type_filtre': type_filtre,
         'statut': statut,
         'recherche': recherche,
     }
@@ -566,50 +577,145 @@ def ajouter_code_ambassadeur(request):
     Vue pour ajouter un code ambassadeur
     """
     if request.method == 'POST':
-        code = request.POST.get('code_ambassadeur')
-        nom = request.POST.get('nom_complet', '')
+        type_ambassadeur = request.POST.get('type_ambassadeur')
+        code_vie = request.POST.get('code_ambassadeur_vie')
+        code_non_vie = request.POST.get('code_ambassadeur_non_vie')
+        nom_complet = request.POST.get('nom_complet', '')
+        email = request.POST.get('email', '')
         
-        if code:
-            # Vérifier si le code existe déjà
-            if Ambassadeur.objects.filter(code_ambassadeur=code).exists():
-                messages.error(request, "Ce code ambassadeur existe déjà.")
+        if not type_ambassadeur or (type_ambassadeur == 'vie' and not code_vie) or (type_ambassadeur == 'non_vie' and not code_non_vie) or (type_ambassadeur == 'les_deux' and (not code_vie or not code_non_vie)):
+            messages.error(request, "Veuillez remplir tous les champs obligatoires.")
+        else:
+            # Vérifier que les codes n'existent pas déjà
+            if code_vie and Ambassadeur.objects.filter(code_ambassadeur_vie=code_vie).exists():
+                messages.error(request, "Ce code ambassadeur Vie existe déjà.")
+            elif code_non_vie and Ambassadeur.objects.filter(code_ambassadeur_non_vie=code_non_vie).exists():
+                messages.error(request, "Ce code ambassadeur Non-Vie existe déjà.")
             else:
                 # Créer un nouvel ambassadeur sans utilisateur associé
                 Ambassadeur.objects.create(
-                    code_ambassadeur=code,
-                    nom_complet=nom,
+                    type_ambassadeur=type_ambassadeur,
+                    code_ambassadeur_vie=code_vie if type_ambassadeur in ['vie', 'les_deux'] else None,
+                    code_ambassadeur_non_vie=code_non_vie if type_ambassadeur in ['non_vie', 'les_deux'] else None,
+                    nom_complet=nom_complet,
+                    email=email,
                     actif=True
                 )
-                messages.success(request, f"Le code ambassadeur {code} a été créé avec succès.")
+                messages.success(request, "Le code ambassadeur a été créé avec succès.")
                 return redirect('backoffice:gestion_codes_ambassadeurs')
-        else:
-            messages.error(request, "Le code ambassadeur est obligatoire.")
     
     return render(request, 'backoffice/ajouter_code_ambassadeur.html')
 
 @login_required
 @user_passes_test(is_admin)
-def dissocier_code_ambassadeur(request, ambassadeur_id):
+def dissocier_ambassadeur(request, ambassadeur_id):
     """
-    Vue pour dissocier un code ambassadeur de son utilisateur
+    Vue pour dissocier un ambassadeur de son utilisateur
     """
     if request.method == 'POST':
         ambassadeur = get_object_or_404(Ambassadeur, pk=ambassadeur_id)
         
         if ambassadeur.user:
-            # Sauvegarder l'ancien code pour le message
-            ancien_code = ambassadeur.code_ambassadeur
+            # Sauvegarder l'ancien utilisateur pour le message
             ancien_user = ambassadeur.user.username
             
             # Dissocier l'utilisateur
             ambassadeur.user = None
             ambassadeur.save()
             
-            messages.success(request, f"Le code {ancien_code} a été dissocié de l'utilisateur {ancien_user}.")
+            messages.success(request, f"L'ambassadeur {ambassadeur.nom_complet} a été dissocié de l'utilisateur {ancien_user}.")
         else:
-            messages.warning(request, "Ce code n'était associé à aucun utilisateur.")
+            messages.warning(request, "Cet ambassadeur n'était associé à aucun utilisateur.")
         
         return redirect('backoffice:gestion_codes_ambassadeurs')
     
     # Si ce n'est pas une requête POST, rediriger vers la liste
     return redirect('backoffice:gestion_codes_ambassadeurs')
+
+@login_required
+@user_passes_test(is_admin)
+def modifier_ambassadeur(request, ambassadeur_id):
+    """
+    Vue pour modifier un ambassadeur
+    """
+    ambassadeur = get_object_or_404(Ambassadeur, pk=ambassadeur_id)
+    
+    if request.method == 'POST':
+        type_ambassadeur = request.POST.get('type_ambassadeur')
+        code_vie = request.POST.get('code_ambassadeur_vie')
+        code_non_vie = request.POST.get('code_ambassadeur_non_vie')
+        nom_complet = request.POST.get('nom_complet')
+        email = request.POST.get('email')
+        telephone = request.POST.get('telephone')
+        date_naissance = request.POST.get('date_naissance')
+        actif = request.POST.get('actif') == 'on'
+        
+        # Vérification des codes
+        if (type_ambassadeur == 'vie' or type_ambassadeur == 'les_deux') and code_vie:
+            code_vie_exists = Ambassadeur.objects.filter(code_ambassadeur_vie=code_vie).exclude(pk=ambassadeur_id).exists()
+            if code_vie_exists:
+                messages.error(request, "Ce code ambassadeur Vie est déjà utilisé par un autre ambassadeur.")
+                return render(request, 'backoffice/modifier_ambassadeur.html', {'ambassadeur': ambassadeur})
+        
+        if (type_ambassadeur == 'non_vie' or type_ambassadeur == 'les_deux') and code_non_vie:
+            code_non_vie_exists = Ambassadeur.objects.filter(code_ambassadeur_non_vie=code_non_vie).exclude(pk=ambassadeur_id).exists()
+            if code_non_vie_exists:
+                messages.error(request, "Ce code ambassadeur Non-Vie est déjà utilisé par un autre ambassadeur.")
+                return render(request, 'backoffice/modifier_ambassadeur.html', {'ambassadeur': ambassadeur})
+        
+        # Mise à jour de l'ambassadeur
+        ambassadeur.type_ambassadeur = type_ambassadeur
+        ambassadeur.code_ambassadeur_vie = code_vie if type_ambassadeur in ['vie', 'les_deux'] else None
+        ambassadeur.code_ambassadeur_non_vie = code_non_vie if type_ambassadeur in ['non_vie', 'les_deux'] else None
+        ambassadeur.nom_complet = nom_complet
+        ambassadeur.email = email
+        ambassadeur.telephone = telephone
+        ambassadeur.date_naissance = date_naissance if date_naissance else None
+        ambassadeur.actif = actif
+        ambassadeur.save()
+        
+        messages.success(request, f"L'ambassadeur {ambassadeur.nom_complet} a été mis à jour avec succès.")
+        return redirect('backoffice:gestion_codes_ambassadeurs')
+    
+    return render(request, 'backoffice/modifier_ambassadeur.html', {'ambassadeur': ambassadeur})
+
+@login_required
+@user_passes_test(is_admin)
+def detail_ambassadeur(request, ambassadeur_id):
+    """
+    Vue pour afficher les détails d'un ambassadeur
+    """
+    ambassadeur = get_object_or_404(Ambassadeur, pk=ambassadeur_id)
+    
+    # Récupérer l'exercice actif
+    exercice_actif = Exercice.objects.filter(
+        date_debut__lte=timezone.now().date(),
+        date_fin__gte=timezone.now().date(),
+        actif=True
+    ).first() or Exercice.objects.filter(actif=True).order_by('-date_debut').first()
+    
+    # Statistiques
+    points_vie = Points.objects.filter(ambassadeur=ambassadeur, type_assurance='vie').aggregate(Sum('montant'))['montant__sum'] or 0
+    points_non_vie = Points.objects.filter(ambassadeur=ambassadeur, type_assurance='non_vie').aggregate(Sum('montant'))['montant__sum'] or 0
+    
+    polices_vie = Police.objects.filter(ambassadeur=ambassadeur, type_assurance='vie').count()
+    polices_non_vie = Police.objects.filter(ambassadeur=ambassadeur, type_assurance='non_vie').count()
+    
+    # Dernières transactions
+    polices = Police.objects.filter(ambassadeur=ambassadeur).order_by('-date_paiement')[:5]
+    points = Points.objects.filter(ambassadeur=ambassadeur).order_by('-date_creation')[:5]
+    echanges = Echange.objects.filter(ambassadeur=ambassadeur).order_by('-date_creation')[:5]
+    
+    context = {
+        'ambassadeur': ambassadeur,
+        'exercice_actif': exercice_actif,
+        'points_vie': points_vie,
+        'points_non_vie': points_non_vie,
+        'polices_vie': polices_vie,
+        'polices_non_vie': polices_non_vie,
+        'polices': polices,
+        'points': points,
+        'echanges': echanges,
+    }
+    
+    return render(request, 'backoffice/detail_ambassadeur.html', context)

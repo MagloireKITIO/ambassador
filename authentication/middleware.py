@@ -1,9 +1,7 @@
 # authentication/middleware.py
-
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.contrib import messages
-from django.urls import resolve
 from ambassadeurs.models import Ambassadeur
 
 class AmbassadeurCheckMiddleware:
@@ -19,13 +17,19 @@ class AmbassadeurCheckMiddleware:
                 pass
             else:
                 # Vérifier si l'URL actuelle n'est pas déjà la page d'association ou de déconnexion
-                current_url_name = resolve(request.path_info).url_name
-                excluded_urls = ['association_code', 'logout', 'login']
-                
-                if current_url_name not in excluded_urls:
-                    # Vérifier si l'utilisateur a un profil ambassadeur
-                    if not Ambassadeur.objects.filter(user=request.user).exists():
-                        return redirect('association_code')
+                try:
+                    current_url = resolve(request.path_info).url_name
+                    excluded_urls = ['association_code', 'logout', 'login']
+                    
+                    if current_url not in excluded_urls:
+                        # Vérifier si l'utilisateur a un profil ambassadeur
+                        if not Ambassadeur.objects.filter(user=request.user).exists():
+                            # Ajout d'un message pour le débogage
+                            print(f"Redirection de l'utilisateur {request.user.username} vers la page d'association")
+                            return redirect('association_code')
+                except Exception as e:
+                    # En cas d'erreur, loggez-la pour déboguer
+                    print(f"Erreur dans AmbassadeurCheckMiddleware: {str(e)}")
         
         response = self.get_response(request)
         return response

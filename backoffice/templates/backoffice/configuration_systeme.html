@@ -19,19 +19,35 @@
             {% csrf_token %}
             
             <div>
-                <label for="{{ form.pourcentage_points.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Pourcentage de points <span class="text-red-500">*</span>
+                <label for="{{ form.pourcentage_points_vie.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Pourcentage de points (Vie) <span class="text-red-500">*</span>
                 </label>
                 <div class="mt-1 relative rounded-md shadow-sm">
-                    {{ form.pourcentage_points }}
+                    {{ form.pourcentage_points_vie }}
                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                         <span class="text-gray-500 sm:text-sm">%</span>
                     </div>
                 </div>
-                {% if form.pourcentage_points.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.pourcentage_points.errors.0 }}</p>
+                {% if form.pourcentage_points_vie.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.pourcentage_points_vie.errors.0 }}</p>
                 {% endif %}
-                <p class="mt-1 text-sm text-gray-500">Pourcentage de la prime nette converti en points (par défaut: 1,5%)</p>
+                <p class="mt-1 text-sm text-gray-500">Pourcentage de la prime nette converti en points pour l'assurance Vie</p>
+            </div>
+            
+            <div>
+                <label for="{{ form.pourcentage_points_non_vie.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Pourcentage de points (Non-Vie) <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    {{ form.pourcentage_points_non_vie }}
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 sm:text-sm">%</span>
+                    </div>
+                </div>
+                {% if form.pourcentage_points_non_vie.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.pourcentage_points_non_vie.errors.0 }}</p>
+                {% endif %}
+                <p class="mt-1 text-sm text-gray-500">Pourcentage de la prime nette converti en points pour l'assurance Non-Vie</p>
             </div>
             
             <div>

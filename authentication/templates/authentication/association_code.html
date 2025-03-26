@@ -1,15 +1,15 @@
 <!-- authentication/templates/authentication/association_code.html -->
 {% extends 'base_auth.html' %}
 
-{% block title %}Association de votre code ambassadeur | ACTIVA Ambassadeurs{% endblock %}
+{% block title %}Bienvenue sur ACTIVA Ambassadeurs | ACTIVA Ambassadeurs{% endblock %}
 
 {% block content %}
-<div class="h-screen flex items-center justify-center bg-gray-100">
-    <div class="flex overflow-hidden rounded-xl shadow-xl w-full max-w-md mx-4 bg-white">
+<div class="h-screen flex items-center justify-center bg-gray-100 overflow-auto py-8">
+    <div class="flex overflow-hidden rounded-xl shadow-xl w-full max-w-2xl mx-4 bg-white">
         <div class="w-full p-8 flex flex-col justify-center">
             <div class="text-center mb-8">
                 <h2 class="text-2xl font-bold text-gray-800">Bienvenue sur ACTIVA Ambassadeurs</h2>
-                <p class="text-gray-600 mt-2">Veuillez associer votre compte à votre code ambassadeur</p>
+                <p class="text-gray-600 mt-2">Complétez votre profil pour finaliser votre inscription</p>
             </div>
             
             {% if messages %}
@@ -25,28 +25,96 @@
             <form method="post" class="space-y-6">
                 {% csrf_token %}
                 
+                <!-- Type d'ambassadeur -->
                 <div>
-                    <label for="code_ambassadeur" class="block text-sm font-medium text-gray-700 mb-1">
-                        Code ambassadeur
+                    <label for="type_ambassadeur" class="block text-sm font-medium text-gray-700 mb-1">
+                        Type d'ambassadeur <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" id="code_ambassadeur" name="code_ambassadeur" 
-                           required 
-                           placeholder="Entrez le code qui vous a été attribué" 
-                           class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                           pattern="[A-Za-z0-9]+" title="Votre code ambassadeur contient uniquement des lettres et des chiffres">
-                    {% if form.code_ambassadeur.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.code_ambassadeur.errors.0 }}</p>
-                    {% endif %}
+                    <select id="type_ambassadeur" name="type_ambassadeur" 
+                            class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                            required onchange="toggleCodeFields()">
+                        <option value="">-- Sélectionnez votre type --</option>
+                        <option value="vie" {% if type_ambassadeur == 'vie' %}selected{% endif %}>Ambassadeur Vie</option>
+                        <option value="non_vie" {% if type_ambassadeur == 'non_vie' %}selected{% endif %}>Ambassadeur Non-Vie</option>
+                        <option value="les_deux" {% if type_ambassadeur == 'les_deux' %}selected{% endif %}>Ambassadeur Vie et Non-Vie</option>
+                    </select>
+                </div>
+                
+                <!-- Codes ambassadeurs -->
+                <div id="code_vie_section" class="{% if type_ambassadeur != 'vie' and type_ambassadeur != 'les_deux' %}hidden{% endif %}">
+                    <label for="code_ambassadeur_vie" class="block text-sm font-medium text-gray-700 mb-1">
+                        Code ambassadeur Vie <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="code_ambassadeur_vie" name="code_ambassadeur_vie" 
+                           placeholder="Entrez votre code apporteur Vie" 
+                           class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Format: code apporteur tel qu'il apparaît dans HELIOS</p>
+                </div>
+                
+                <div id="code_non_vie_section" class="{% if type_ambassadeur != 'non_vie' and type_ambassadeur != 'les_deux' %}hidden{% endif %}">
+                    <label for="code_ambassadeur_non_vie" class="block text-sm font-medium text-gray-700 mb-1">
+                        Code ambassadeur Non-Vie <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="code_ambassadeur_non_vie" name="code_ambassadeur_non_vie" 
+                           placeholder="Entrez votre code apporteur Non-Vie" 
+                           class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Format: code apporteur tel qu'il apparaît dans ORASS</p>
+                </div>
+                
+                <!-- Informations personnelles -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="nom" class="block text-sm font-medium text-gray-700 mb-1">
+                            Nom <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="nom" name="nom" required
+                               placeholder="Votre nom de famille" 
+                               class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                    </div>
+                    
+                    <div>
+                        <label for="prenom" class="block text-sm font-medium text-gray-700 mb-1">
+                            Prénom <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="prenom" name="prenom" required
+                               placeholder="Votre prénom" 
+                               class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                    </div>
+                    
+                    <div>
+                        <label for="date_naissance" class="block text-sm font-medium text-gray-700 mb-1">
+                            Date de naissance
+                        </label>
+                        <input type="date" id="date_naissance" name="date_naissance"
+                               class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                    </div>
+                    
+                    <div>
+                        <label for="telephone" class="block text-sm font-medium text-gray-700 mb-1">
+                            Téléphone
+                        </label>
+                        <input type="tel" id="telephone" name="telephone"
+                               placeholder="Exemple: 694123456" 
+                               class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                    </div>
                 </div>
                 
                 <div>
-                    <p class="text-sm text-gray-500 mb-2">Ce code vous a été communiqué par votre responsable ou le service RH. Il est nécessaire pour accéder à votre espace ambassadeur.</p>
-                    <p class="text-sm text-gray-500">Si vous n'avez pas reçu de code ou si vous l'avez perdu, veuillez contacter l'administrateur du programme.</p>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                        Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" id="email" name="email" required
+                           value="{{ request.user.email }}"
+                           class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-500 mb-2">Vos codes ambassadeurs vous permettront de bénéficier du programme de récompenses. Ils doivent correspondre à vos codes apporteurs dans les systèmes HELIOS (Vie) et/ou ORASS (Non-Vie).</p>
                 </div>
                 
                 <div>
                     <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
-                        <i class="fas fa-link mr-2"></i> Associer mon compte
+                        <i class="fas fa-user-plus mr-2"></i> Valider mon profil
                     </button>
                 </div>
             </form>
@@ -59,4 +127,41 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleCodeFields() {
+        const typeSelect = document.getElementById('type_ambassadeur');
+        const codeVieSection = document.getElementById('code_vie_section');
+        const codeNonVieSection = document.getElementById('code_non_vie_section');
+        const codeVieInput = document.getElementById('code_ambassadeur_vie');
+        const codeNonVieInput = document.getElementById('code_ambassadeur_non_vie');
+        
+        if (typeSelect.value === 'vie') {
+            codeVieSection.classList.remove('hidden');
+            codeNonVieSection.classList.add('hidden');
+            codeVieInput.required = true;
+            codeNonVieInput.required = false;
+        } else if (typeSelect.value === 'non_vie') {
+            codeVieSection.classList.add('hidden');
+            codeNonVieSection.classList.remove('hidden');
+            codeVieInput.required = false;
+            codeNonVieInput.required = true;
+        } else if (typeSelect.value === 'les_deux') {
+            codeVieSection.classList.remove('hidden');
+            codeNonVieSection.classList.remove('hidden');
+            codeVieInput.required = true;
+            codeNonVieInput.required = true;
+        } else {
+            codeVieSection.classList.add('hidden');
+            codeNonVieSection.classList.add('hidden');
+            codeVieInput.required = false;
+            codeNonVieInput.required = false;
+        }
+    }
+    
+    // Exécuter au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleCodeFields();
+    });
+</script>
 {% endblock %}

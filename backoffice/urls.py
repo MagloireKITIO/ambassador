@@ -15,7 +15,9 @@ urlpatterns = [
     path('exercices/', views.gestion_exercices, name='gestion_exercices'),
     path('import/', views.importer_donnees, name='importer_donnees'),
     path('rapports/points/', views.rapport_points, name='rapport_points'),
-     path('codes-ambassadeurs/', views.gestion_codes_ambassadeurs, name='gestion_codes_ambassadeurs'),
-    path('codes-ambassadeurs/ajouter/', views.ajouter_code_ambassadeur, name='ajouter_code_ambassadeur'),
-    path('codes-ambassadeurs/dissocier/<int:ambassadeur_id>/', views.dissocier_code_ambassadeur, name='dissocier_code_ambassadeur'),
+    path('ambassadeurs/', views.gestion_codes_ambassadeurs, name='gestion_codes_ambassadeurs'),
+    path('ambassadeurs/ajouter/', views.ajouter_code_ambassadeur, name='ajouter_code_ambassadeur'),
+    path('ambassadeurs/dissocier/<int:ambassadeur_id>/', views.dissocier_ambassadeur, name='dissocier_ambassadeur'),
+    path('ambassadeurs/modifier/<int:ambassadeur_id>/', views.modifier_ambassadeur, name='modifier_ambassadeur'),
+    path('ambassadeurs/detail/<int:ambassadeur_id>/', views.detail_ambassadeur, name='detail_ambassadeur'),
 ]

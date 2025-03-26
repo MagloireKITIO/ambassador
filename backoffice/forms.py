@@ -65,18 +65,28 @@ class ConfigurationForm(forms.ModelForm):
     """
     class Meta:
         model = Configuration
-        fields = ['pourcentage_points', 'duree_validite_points']
+        fields = ['pourcentage_points_vie', 'pourcentage_points_non_vie', 'duree_validite_points']
         widgets = {
-            'pourcentage_points': forms.NumberInput(attrs={'class': 'block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'step': '0.1'}),
+            'pourcentage_points_vie': forms.NumberInput(attrs={'class': 'block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'step': '0.1'}),
+            'pourcentage_points_non_vie': forms.NumberInput(attrs={'class': 'block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm', 'step': '0.1'}),
             'duree_validite_points': forms.NumberInput(attrs={'class': 'block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'}),
         }
     
-    def clean_pourcentage_points(self):
-        pourcentage = self.cleaned_data.get('pourcentage_points')
+    def clean_pourcentage_points_vie(self):
+        pourcentage = self.cleaned_data.get('pourcentage_points_vie')
         
         # Vérifier que le pourcentage est positif
         if pourcentage <= 0:
-            raise ValidationError("Le pourcentage doit être supérieur à 0.")
+            raise ValidationError("Le pourcentage pour la Vie doit être supérieur à 0.")
+        
+        return pourcentage
+    
+    def clean_pourcentage_points_non_vie(self):
+        pourcentage = self.cleaned_data.get('pourcentage_points_non_vie')
+        
+        # Vérifier que le pourcentage est positif
+        if pourcentage <= 0:
+            raise ValidationError("Le pourcentage pour la Non-Vie doit être supérieur à 0.")
         
         return pourcentage
     

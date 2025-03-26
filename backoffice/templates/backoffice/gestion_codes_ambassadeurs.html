@@ -1,9 +1,9 @@
 <!-- backoffice/templates/backoffice/gestion_codes_ambassadeurs.html -->
 {% extends 'base.html' %}
 
-{% block title %}Gestion des codes ambassadeurs | ACTIVA Ambassadeurs{% endblock %}
+{% block title %}Gestion des ambassadeurs | ACTIVA Ambassadeurs{% endblock %}
 
-{% block page_title %}Gestion des codes ambassadeurs{% endblock %}
+{% block page_title %}Gestion des ambassadeurs{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
@@ -11,7 +11,16 @@
     <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
         <div class="flex flex-col md:flex-row justify-between md:items-center space-y-4 md:space-y-0">
             <!-- Filtres -->
-            <form method="get" action="{% url 'backoffice:gestion_codes_ambassadeurs' %}" class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+            <form method="get" action="{% url 'backoffice:gestion_codes_ambassadeurs' %}" class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 flex-wrap gap-3">
+                <div>
+                    <label for="type" class="sr-only">Type d'ambassadeur</label>
+                    <select id="type" name="type" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <option value="tous">Tous les types</option>
+                        <option value="vie" {% if type_filtre == 'vie' %}selected{% endif %}>Ambassadeurs Vie</option>
+                        <option value="non_vie" {% if type_filtre == 'non_vie' %}selected{% endif %}>Ambassadeurs Non-Vie</option>
+                    </select>
+                </div>
+                
                 <div>
                     <label for="statut" class="sr-only">Statut</label>
                     <select id="statut" name="statut" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
@@ -27,17 +36,19 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-search text-gray-400"></i>
                         </div>
-                        <input type="text" name="recherche" id="recherche" value="{{ recherche|default:'' }}" class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md" placeholder="Rechercher un code ou un nom...">
+                        <input type="text" name="recherche" id="recherche" value="{{ recherche|default:'' }}" class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md" placeholder="Rechercher par code, nom ou email...">
                     </div>
                 </div>
                 
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Filtrer
-                </button>
-                
-                <a href="{% url 'backoffice:gestion_codes_ambassadeurs' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Réinitialiser
-                </a>
+                <div class="flex space-x-2">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-filter mr-2"></i> Filtrer
+                    </button>
+                    
+                    <a href="{% url 'backoffice:gestion_codes_ambassadeurs' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-sync-alt mr-2"></i> Réinitialiser
+                    </a>
+                </div>
             </form>
             
             <!-- Actions -->
@@ -60,10 +71,16 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Code
+                            Nom complet
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Nom complet
+                            Type
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Code Vie
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Code Non-Vie
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Email
@@ -80,10 +97,28 @@
                     {% for ambassadeur in page_obj %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ ambassadeur.code_ambassadeur }}
+                                {{ ambassadeur.nom_complet }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ ambassadeur.nom_complet|default:"Non spécifié" }}
+                                {% if ambassadeur.type_ambassadeur == 'vie' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        Vie
+                                    </span>
+                                {% elif ambassadeur.type_ambassadeur == 'non_vie' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Non-Vie
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        Vie & Non-Vie
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ ambassadeur.code_ambassadeur_vie|default:"-" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ ambassadeur.code_ambassadeur_non_vie|default:"-" }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ ambassadeur.email|default:"-" }}
@@ -91,7 +126,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {% if ambassadeur.user %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        <i class="fas fa-user-check mr-1"></i> Associé
+                                        <i class="fas fa-user-check mr-1"></i> Associé à {{ ambassadeur.user.username }}
                                     </span>
                                 {% else %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -101,26 +136,28 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                                 {% if ambassadeur.user %}
-                                    <form method="post" action="{% url 'backoffice:dissocier_code_ambassadeur' ambassadeur.id %}" class="inline" onsubmit="return confirm('Êtes-vous sûr de vouloir dissocier ce code de l\'utilisateur ? Cette action ne pourra pas être annulée.');">
+                                    <form method="post" action="{% url 'backoffice:dissocier_ambassadeur' ambassadeur.id %}" class="inline" onsubmit="return confirm('Êtes-vous sûr de vouloir dissocier cet ambassadeur de son utilisateur ? Cette action ne pourra pas être annulée.');">
                                         {% csrf_token %}
-                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                        <button type="submit" class="text-red-600 hover:text-red-900 mx-1">
                                             <i class="fas fa-unlink"></i>
                                         </button>
                                     </form>
-                                {% else %}
-                                    <span class="text-gray-400">
-                                        <i class="fas fa-unlink"></i>
-                                    </span>
                                 {% endif %}
+                                <a href="{% url 'backoffice:detail_ambassadeur' ambassadeur.id %}" class="text-blue-600 hover:text-blue-900 mx-1">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'backoffice:modifier_ambassadeur' ambassadeur.id %}" class="text-yellow-600 hover:text-yellow-900 mx-1">
+                                    <i class="fas fa-edit"></i>
+                                </a>
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                            <td colspan="7" class="px-6 py-10 text-center text-gray-500">
                                 <div class="flex flex-col items-center">
                                     <i class="fas fa-users fa-3x mb-4 text-gray-300"></i>
-                                    <p>Aucun code ambassadeur trouvé.</p>
-                                    <p class="text-sm mt-1">Essayez de modifier vos critères de recherche ou d'ajouter un nouveau code.</p>
+                                    <p>Aucun ambassadeur trouvé.</p>
+                                    <p class="text-sm mt-1">Essayez de modifier vos critères de recherche ou d'ajouter un nouvel ambassadeur.</p>
                                 </div>
                             </td>
                         </tr>
@@ -129,89 +166,32 @@
             </table>
         </div>
         
-        <!-- Pagination -->
-        {% if page_obj.has_other_pages %}
-            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm text-gray-700">
-                            Affichage de <span class="font-medium">{{ page_obj.start_index }}</span> à 
-                            <span class="font-medium">{{ page_obj.end_index }}</span> sur 
-                            <span class="font-medium">{{ page_obj.paginator.count }}</span> codes
-                        </p>
-                    </div>
-                    <div>
-                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                            <!-- Previous Page -->
-                            {% if page_obj.has_previous %}
-                                <a href="?page={{ page_obj.previous_page_number }}{% if statut %}&statut={{ statut }}{% endif %}{% if recherche %}&recherche={{ recherche }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <span class="sr-only">Précédent</span>
-                                    <i class="fas fa-chevron-left"></i>
-                                </a>
-                            {% else %}
-                                <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
-                                    <span class="sr-only">Précédent</span>
-                                    <i class="fas fa-chevron-left"></i>
-                                </span>
-                            {% endif %}
-                            
-                            <!-- Page numbers -->
-                            {% for i in page_obj.paginator.page_range %}
-                                {% if page_obj.number == i %}
-                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
-                                        {{ i }}
-                                    </span>
-                                {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
-                                    <a href="?page={{ i }}{% if statut %}&statut={{ statut }}{% endif %}{% if recherche %}&recherche={{ recherche }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                        {{ i }}
-                                    </a>
-                                {% endif %}
-                            {% endfor %}
-                            
-                            <!-- Next Page -->
-                            {% if page_obj.has_next %}
-                                <a href="?page={{ page_obj.next_page_number }}{% if statut %}&statut={{ statut }}{% endif %}{% if recherche %}&recherche={{ recherche }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <span class="sr-only">Suivant</span>
-                                    <i class="fas fa-chevron-right"></i>
-                                </a>
-                            {% else %}
-                                <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
-                                    <span class="sr-only">Suivant</span>
-                                    <i class="fas fa-chevron-right"></i>
-                                </span>
-                            {% endif %}
-                        </nav>
-                    </div>
-                </div>
-                
-                <!-- Mobile pagination -->
-                <div class="flex sm:hidden justify-between w-full">
-                    {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}{% if statut %}&statut={{ statut }}{% endif %}{% if recherche %}&recherche={{ recherche }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Précédent
-                        </a>
-                    {% else %}
-                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
-                            Précédent
-                        </span>
-                    {% endif %}
-                    
-                    <p class="text-sm text-gray-700 py-2">
-                        Page <span class="font-medium">{{ page_obj.number }}</span> sur <span class="font-medium">{{ page_obj.paginator.num_pages }}</span>
-                    </p>
-                    
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% if statut %}&statut={{ statut }}{% endif %}{% if recherche %}&recherche={{ recherche }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Suivant
-                        </a>
-                    {% else %}
-                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
-                            Suivant
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-        {% endif %}
+        <!-- Mobile pagination -->
+        <div class="flex sm:hidden justify-between w-full">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if statut %}&statut={{ statut }}{% endif %}{% if recherche %}&recherche={{ recherche }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Précédent
+                </a>
+            {% else %}
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
+                    Précédent
+                </span>
+            {% endif %}
+            
+            <p class="text-sm text-gray-700 py-2">
+                Page <span class="font-medium">{{ page_obj.number }}</span> sur <span class="font-medium">{{ page_obj.paginator.num_pages }}</span>
+            </p>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if statut %}&statut={{ statut }}{% endif %}{% if recherche %}&recherche={{ recherche }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Suivant
+                </a>
+            {% else %}
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
+                    Suivant
+                </span>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

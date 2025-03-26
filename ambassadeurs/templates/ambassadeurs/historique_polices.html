@@ -1,0 +1,406 @@
+<!-- ambassadeurs/templates/ambassadeurs/historique_polices.html -->
+{% extends 'base.html' %}
+
+{% block title %}Historique des polices | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Historique de mes polices{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Filtres -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Filtrer les polices</h2>
+        <form method="get" action="{% url 'historique_polices' %}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label for="date_debut" class="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
+                <input type="date" id="date_debut" name="date_debut" value="{{ date_debut|default:'' }}" 
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+            </div>
+            
+            <div>
+                <label for="date_fin" class="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                <input type="date" id="date_fin" name="date_fin" value="{{ date_fin|default:'' }}" 
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+            </div>
+            
+            <div>
+                <label for="source" class="block text-sm font-medium text-gray-700 mb-1">Source</label>
+                <select id="source" name="source" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    <option value="">Toutes les sources</option>
+                    <option value="ORASS" {% if source == 'ORASS' %}selected{% endif %}>ORASS</option>
+                    <option value="HELIOS" {% if source == 'HELIOS' %}selected{% endif %}>HELIOS</option>
+                </select>
+            </div>
+            
+            <div class="md:col-span-3 flex flex-wrap gap-2 justify-end">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-filter mr-2"></i> Filtrer
+                </button>
+                
+                <a href="{% url 'historique_polices' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-sync-alt mr-2"></i> Réinitialiser
+                </a>
+                
+                <a href="{% url 'exporter_historique_polices' %}{% if date_debut %}?date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}{% if source %}&source={{ source }}{% endif %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-file-export mr-2"></i> Exporter
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Résumé des statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                    <i class="fas fa-file-contract text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Total polices</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ total_polices }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                    <i class="fas fa-money-bill-alt text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Total primes</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ total_primes|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                    <i class="fas fa-coins text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Points générés</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ total_points|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Graphique de répartition -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Évolution des polices dans le temps -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Évolution des polices</h3>
+            <div id="polices-chart" class="w-full h-64"></div>
+        </div>
+        
+        <!-- Répartition par source -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Répartition par source</h3>
+            <div id="sources-chart" class="w-full h-64"></div>
+        </div>
+    </div>
+    
+    <!-- Tableau des polices -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-medium text-gray-900">Détail des polices</h3>
+        </div>
+        
+        {% if polices %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Police</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date paiement</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Prime nette</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for police in polices %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ police.numero_police }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ police.date_paiement|date:"d/m/Y" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if police.source_systeme == 'ORASS' %}bg-blue-100 text-blue-800{% else %}bg-purple-100 text-purple-800{% endif %}">
+                                        {{ police.source_systeme }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                    {{ police.prime_nette|floatformat:2 }} €
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium text-right">
+                                    {% for point in police.points.all %}
+                                        {{ point.montant|floatformat:2 }}
+                                    {% empty %}
+                                        0.00
+                                    {% endfor %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if police.statut == 'payé' %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                        {{ police.statut|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if polices.has_other_pages %}
+                <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div class="flex-1 flex justify-between sm:hidden">
+                        {% if polices.has_previous %}
+                            <a href="?page={{ polices.previous_page_number }}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}{% if source %}&source={{ source }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Précédent
+                            </a>
+                        {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed">
+                                Précédent
+                            </span>
+                        {% endif %}
+                        {% if polices.has_next %}
+                            <a href="?page={{ polices.next_page_number }}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}{% if source %}&source={{ source }}{% endif %}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Suivant
+                            </a>
+                        {% else %}
+                            <span class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed">
+                                Suivant
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Affichage de <span class="font-medium">{{ polices.start_index }}</span> à <span class="font-medium">{{ polices.end_index }}</span> sur <span class="font-medium">{{ polices.paginator.count }}</span> polices
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                {% if polices.has_previous %}
+                                    <a href="?page={{ polices.previous_page_number }}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}{% if source %}&source={{ source }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">Précédent</span>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-500 cursor-not-allowed">
+                                        <span class="sr-only">Précédent</span>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                {% endif %}
+                                
+                                {% for i in polices.paginator.page_range %}
+                                    {% if polices.number == i %}
+                                        <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600">
+                                            {{ i }}
+                                        </span>
+                                    {% elif i > polices.number|add:'-3' and i < polices.number|add:'3' %}
+                                        <a href="?page={{ i }}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}{% if source %}&source={{ source }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                            {{ i }}
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if polices.has_next %}
+                                    <a href="?page={{ polices.next_page_number }}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}{% if source %}&source={{ source }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">Suivant</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-500 cursor-not-allowed">
+                                        <span class="sr-only">Suivant</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                {% endif %}
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <div class="flex flex-col items-center">
+                    <i class="fas fa-file-contract fa-3x mb-4 text-gray-300"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Aucune police trouvée</h3>
+                    <p>Aucune police ne correspond aux critères sélectionnés.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Données pour le graphique d'évolution des polices
+        var policesTotals = [
+            {% for month_data in polices_par_mois %}
+                {
+                    month: "{{ month_data.month }}",
+                    count: {{ month_data.count }},
+                    amount: {{ month_data.amount|floatformat:2 }}
+                }{% if not forloop.last %},{% endif %}
+            {% empty %}
+                {month: "Jan", count: 0, amount: 0},
+                {month: "Fév", count: 0, amount: 0},
+                {month: "Mar", count: 0, amount: 0},
+                {month: "Avr", count: 0, amount: 0},
+                {month: "Mai", count: 0, amount: 0},
+                {month: "Juin", count: 0, amount: 0}
+            {% endfor %}
+        ];
+        
+        // Configuration du graphique d'évolution
+        var policesTotalsOptions = {
+            chart: {
+                type: 'line',
+                height: 260,
+                toolbar: {
+                    show: false
+                },
+                fontFamily: 'Poppins, sans-serif',
+            },
+            series: [{
+                name: 'Nombre de polices',
+                data: policesTotals.map(item => item.count)
+            }, {
+                name: 'Montant (x100)',
+                data: policesTotals.map(item => item.amount / 100)
+            }],
+            xaxis: {
+                categories: policesTotals.map(item => item.month),
+                labels: {
+                    style: {
+                        colors: '#64748b',
+                        fontSize: '12px',
+                        fontFamily: 'Poppins, sans-serif',
+                    },
+                }
+            },
+            yaxis: [
+                {
+                    title: {
+                        text: 'Nombre de polices'
+                    },
+                    labels: {
+                        style: {
+                            colors: '#64748b',
+                            fontSize: '12px',
+                            fontFamily: 'Poppins, sans-serif',
+                        },
+                    }
+                },
+                {
+                    opposite: true,
+                    title: {
+                        text: 'Montant (x100)'
+                    },
+                    labels: {
+                        style: {
+                            colors: '#64748b',
+                            fontSize: '12px',
+                            fontFamily: 'Poppins, sans-serif',
+                        },
+                    }
+                }
+            ],
+            colors: ['#3b82f6', '#10b981'],
+            stroke: {
+                curve: 'smooth',
+                width: 3
+            },
+            grid: {
+                borderColor: '#e2e8f0',
+                strokeDashArray: 4,
+            },
+            markers: {
+                size: 5,
+                strokeWidth: 2,
+                hover: {
+                    size: 7,
+                }
+            },
+            tooltip: {
+                theme: 'light',
+                y: [
+                    {
+                        formatter: function(value) {
+                            return value + " polices";
+                        }
+                    },
+                    {
+                        formatter: function(value) {
+                            return (value * 100).toFixed(2) + " €";
+                        }
+                    }
+                ]
+            }
+        };
+        
+        // Initialiser le graphique d'évolution
+        var policesTotalsChart = new ApexCharts(document.querySelector("#polices-chart"), policesTotalsOptions);
+        policesTotalsChart.render();
+        
+        // Données pour le graphique de répartition par source
+        var sourcesData = [
+            {% for source, count in sources_count.items %}
+                {{ count }}{% if not forloop.last %},{% endif %}
+            {% empty %}
+                0, 0
+            {% endfor %}
+        ];
+        
+        // Configuration du graphique de répartition
+        var sourcesOptions = {
+            chart: {
+                type: 'pie',
+                height: 260,
+                fontFamily: 'Poppins, sans-serif',
+            },
+            series: sourcesData,
+            labels: [{% for source, count in sources_count.items %}'{{ source }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            colors: ['#3b82f6', '#8b5cf6'],
+            legend: {
+                position: 'bottom',
+                fontFamily: 'Poppins, sans-serif',
+            },
+            tooltip: {
+                theme: 'light',
+                y: {
+                    formatter: function(value) {
+                        return value + " polices";
+                    }
+                }
+            },
+            responsive: [{
+                breakpoint: 480,
+                options: {
+                    chart: {
+                        width: 200
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }]
+        };
+        
+        // Initialiser le graphique de répartition
+        var sourcesChart = new ApexCharts(document.querySelector("#sources-chart"), sourcesOptions);
+        sourcesChart.render();
+    });
+</script>
+{% endblock %}

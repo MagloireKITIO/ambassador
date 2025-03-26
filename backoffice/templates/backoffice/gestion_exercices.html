@@ -1,0 +1,186 @@
+<!-- backoffice/templates/backoffice/gestion_exercices.html -->
+{% extends 'base.html' %}
+
+{% block title %}Gestion des exercices | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Gestion des exercices{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Formulaire d'ajout -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        {% if exercice_edit %}Modifier{% else %}Créer{% endif %} un exercice
+                    </h3>
+                </div>
+                
+                <form method="post" action="{% if exercice_edit %}{% url 'backoffice:modifier_exercice' exercice_edit.id %}{% else %}{% url 'backoffice:ajouter_exercice' %}{% endif %}" class="p-6 space-y-6">
+                    {% csrf_token %}
+                    
+                    <div>
+                        <label for="{{ form.nom.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Nom <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.nom }}
+                            {% if form.nom.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.nom.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">Exemple: "Exercice 2025", "Trimestre 1 2025"</p>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.date_debut.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Date de début <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.date_debut }}
+                            {% if form.date_debut.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.date_debut.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.date_fin.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Date de fin <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.date_fin }}
+                            {% if form.date_fin.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.date_fin.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                {{ form.actif }}
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="{{ form.actif.id_for_label }}" class="font-medium text-gray-700">
+                                    Actif
+                                </label>
+                                <p class="text-gray-500">Les points sont distribués uniquement pour les exercices actifs.</p>
+                            </div>
+                        </div>
+                        {% if form.actif.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.actif.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Erreurs générales -->
+                    {% if form.non_field_errors %}
+                        <div class="rounded-md bg-red-50 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-circle text-red-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-red-800">
+                                        Il y a des erreurs dans le formulaire
+                                    </h3>
+                                    <div class="mt-2 text-sm text-red-700">
+                                        <ul class="list-disc pl-5 space-y-1">
+                                            {% for error in form.non_field_errors %}
+                                                <li>{{ error }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="pt-4 flex justify-end">
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            {% if exercice_edit %}Mettre à jour{% else %}Créer{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Liste des exercices -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">Liste des exercices</h3>
+                </div>
+                
+                <ul class="divide-y divide-gray-200">
+                    {% for exercice in exercices %}
+                        <li class="p-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="mr-4">
+                                        {% if exercice.actif %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <i class="fas fa-check-circle mr-1"></i> Actif
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                <i class="fas fa-times-circle mr-1"></i> Inactif
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h4 class="text-lg font-semibold text-gray-900">{{ exercice.nom }}</h4>
+                                        <div class="flex text-sm text-gray-500 mt-1">
+                                            <p>Du {{ exercice.date_debut|date:"d/m/Y" }} au {{ exercice.date_fin|date:"d/m/Y" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <a href="{% url 'backoffice:modifier_exercice' exercice.id %}" class="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm font-medium text-gray-500 bg-white hover:bg-gray-50">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if exercice.actif %}
+                                        <form method="post" action="{% url 'backoffice:desactiver_exercice' exercice.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm font-medium text-red-600 bg-white hover:bg-gray-50">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" action="{% url 'backoffice:activer_exercice' exercice.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm font-medium text-green-600 bg-white hover:bg-gray-50">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <p class="text-sm text-gray-500">Points distribués</p>
+                                    <p class="text-xl font-semibold text-blue-600">{{ exercice.points_total|default:"0.00"|floatformat:2 }}</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <p class="text-sm text-gray-500">Polices associées</p>
+                                    <p class="text-xl font-semibold text-gray-800">{{ exercice.polices_count|default:"0" }}</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <p class="text-sm text-gray-500">Échanges réalisés</p>
+                                    <p class="text-xl font-semibold text-gray-800">{{ exercice.echanges_count|default:"0" }}</p>
+                                </div>
+                            </div>
+                        </li>
+                    {% empty %}
+                        <li class="p-6 text-center">
+                            <p class="text-gray-500">Aucun exercice défini. Créez un premier exercice pour commencer.</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

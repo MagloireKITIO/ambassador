@@ -1,0 +1,504 @@
+<!-- templates/landing_page.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACTIVA Ambassadeurs - Programme de Parrainage</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            scroll-behavior: smooth;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .counter-value {
+            transition: all 0.5s ease;
+        }
+        
+        .testimonial-card {
+            position: relative;
+        }
+        
+        .testimonial-card::before {
+            content: '\201C';
+            position: absolute;
+            top: -20px;
+            left: 20px;
+            font-size: 80px;
+            color: rgba(59, 130, 246, 0.2);
+            font-family: serif;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="bg-white shadow" x-data="{ isOpen: false }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-2xl font-bold text-blue-700">ACTIVA</h1>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="#home" class="inline-flex items-center px-1 pt-1 border-b-2 border-blue-500 text-sm font-medium text-gray-900">
+                            Accueil
+                        </a>
+                        <a href="#avantages" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-blue-300 hover:text-gray-700">
+                            Avantages
+                        </a>
+                        <a href="#fonctionnement" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-blue-300 hover:text-gray-700">
+                            Fonctionnement
+                        </a>
+                        <a href="#temoignages" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-blue-300 hover:text-gray-700">
+                            Témoignages
+                        </a>
+                        <a href="#faq" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-blue-300 hover:text-gray-700">
+                            FAQ
+                        </a>
+                    </div>
+                </div>
+                <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                    <a href="{% url 'login' %}" class="ml-8 whitespace-nowrap inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        Connexion
+                    </a>
+                </div>
+                <div class="-mr-2 flex items-center sm:hidden">
+                    <button @click="isOpen = !isOpen" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Ouvrir le menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div class="sm:hidden" id="mobile-menu" x-show="isOpen" style="display: none;">
+            <div class="pt-2 pb-3 space-y-1">
+                <a href="#home" class="block pl-3 pr-4 py-2 border-l-4 border-blue-500 text-base font-medium text-blue-700 bg-blue-50">
+                    Accueil
+                </a>
+                <a href="#avantages" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800">
+                    Avantages
+                </a>
+                <a href="#fonctionnement" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800">
+                    Fonctionnement
+                </a>
+                <a href="#temoignages" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800">
+                    Témoignages
+                </a>
+                <a href="#faq" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800">
+                    FAQ
+                </a>
+                <a href="{% url 'login' %}" class="block w-full text-center mt-4 px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 mx-2">
+                    Connexion
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section id="home" class="hero-gradient text-white">
+        <div class="max-w-7xl mx-auto py-20 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-10 md:mb-0" data-aos="fade-right">
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4">
+                    Programme ACTIVA Ambassadeurs
+                </h1>
+                <p class="text-xl md:text-2xl mb-8">
+                    Votre recommandation, votre récompense. Partagez votre passion pour nos produits et gagnez des points à échanger contre des récompenses exclusives.
+                </p>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <a href="{% url 'login' %}" class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-700 bg-white hover:bg-gray-100 md:text-lg">
+                        Commencer maintenant
+                        <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            <div class="md:w-1/2" data-aos="fade-left">
+                <img src="../static/images/login_back.jpg" alt="ACTIVA Ambassadeurs Dashboard" class="rounded-lg shadow-xl">
+            </div>
+        </div>
+    </section>
+    
+    <!-- Stats Section -->
+    <section class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                <div class="bg-blue-50 overflow-hidden shadow rounded-lg" data-aos="zoom-in" data-aos-delay="0">
+                    <div class="px-4 py-5 sm:p-6 text-center">
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Ambassadeurs actifs
+                        </dt>
+                        <dd class="mt-1 text-3xl font-semibold text-blue-700 counter-value" x-data="{ count: 0 }" x-init="setTimeout(() => { count = 500 }, 100)">
+                            <span x-text="count">0</span>+
+                        </dd>
+                    </div>
+                </div>
+                <div class="bg-blue-50 overflow-hidden shadow rounded-lg" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="px-4 py-5 sm:p-6 text-center">
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Points distribués
+                        </dt>
+                        <dd class="mt-1 text-3xl font-semibold text-blue-700 counter-value" x-data="{ count: 0 }" x-init="setTimeout(() => { count = 1500000 }, 100)">
+                            <span x-text="count.toLocaleString()">0</span>
+                        </dd>
+                    </div>
+                </div>
+                <div class="bg-blue-50 overflow-hidden shadow rounded-lg" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="px-4 py-5 sm:p-6 text-center">
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Récompenses échangées
+                        </dt>
+                        <dd class="mt-1 text-3xl font-semibold text-blue-700 counter-value" x-data="{ count: 0 }" x-init="setTimeout(() => { count = 2500 }, 100)">
+                            <span x-text="count.toLocaleString()">0</span>+
+                        </dd>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Avantages Section -->
+    <section id="avantages" class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl" data-aos="fade-up">
+                    Les avantages du programme
+                </h2>
+                <p class="mt-4 text-lg text-gray-600" data-aos="fade-up" data-aos-delay="100">
+                    Devenir ambassadeur ACTIVA, c'est bénéficier d'un programme exclusif qui récompense votre engagement.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="card bg-white overflow-hidden shadow rounded-lg p-6" data-aos="fade-up" data-aos-delay="0">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white mb-5">
+                        <i class="fas fa-coins text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Gagnez des points</h3>
+                    <p class="text-gray-600">Recevez 1,5% de la prime nette en points pour chaque police vendue grâce à votre recommandation.</p>
+                </div>
+                <div class="card bg-white overflow-hidden shadow rounded-lg p-6" data-aos="fade-up" data-aos-delay="100">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white mb-5">
+                        <i class="fas fa-gift text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Catalogue exclusif</h3>
+                    <p class="text-gray-600">Accédez à un catalogue de récompenses exclusives à échanger contre vos points accumulés.</p>
+                </div>
+                <div class="card bg-white overflow-hidden shadow rounded-lg p-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white mb-5">
+                        <i class="fas fa-chart-line text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Suivi en temps réel</h3>
+                    <p class="text-gray-600">Consultez votre solde de points et l'historique de vos transactions sur votre espace personnel.</p>
+                </div>
+                <div class="card bg-white overflow-hidden shadow rounded-lg p-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white mb-5">
+                        <i class="fas fa-trophy text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Reconnaissance</h3>
+                    <p class="text-gray-600">Soyez reconnu pour votre contribution au sein de l'entreprise et auprès de vos collègues.</p>
+                </div>
+                <div class="card bg-white overflow-hidden shadow rounded-lg p-6" data-aos="fade-up" data-aos-delay="400">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white mb-5">
+                        <i class="fas fa-user-friends text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Simplicité</h3>
+                    <p class="text-gray-600">Un processus simple et transparent pour recommander et suivre vos gains.</p>
+                </div>
+                <div class="card bg-white overflow-hidden shadow rounded-lg p-6" data-aos="fade-up" data-aos-delay="500">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-blue-600 text-white mb-5">
+                        <i class="fas fa-shield-alt text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Accès sécurisé</h3>
+                    <p class="text-gray-600">Connectez-vous en toute sécurité avec votre identifiant d'entreprise (AD) pour accéder à votre espace.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Fonctionnement Section -->
+    <section id="fonctionnement" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl" data-aos="fade-up">
+                    Comment ça fonctionne
+                </h2>
+                <p class="mt-4 text-lg text-gray-600" data-aos="fade-up" data-aos-delay="100">
+                    En 4 étapes simples, devenez ambassadeur et commencez à cumuler des points.
+                </p>
+            </div>
+            <div class="relative">
+                <!-- Line -->
+                <div class="hidden md:block absolute top-1/2 w-full h-0.5 bg-gray-200 -translate-y-1/2"></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div class="relative" data-aos="fade-up" data-aos-delay="0">
+                        <div class="flex flex-col items-center">
+                            <div class="bg-blue-600 text-white text-xl font-bold h-12 w-12 rounded-full flex items-center justify-center mb-4 z-10">1</div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Inscrivez-vous</h3>
+                            <p class="text-gray-600 text-center">Recevez votre code ambassadeur unique de la part des RH.</p>
+                        </div>
+                    </div>
+                    <div class="relative" data-aos="fade-up" data-aos-delay="100">
+                        <div class="flex flex-col items-center">
+                            <div class="bg-blue-600 text-white text-xl font-bold h-12 w-12 rounded-full flex items-center justify-center mb-4 z-10">2</div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Recommandez</h3>
+                            <p class="text-gray-600 text-center">Partagez votre code ambassadeur avec vos contacts lors des ventes.</p>
+                        </div>
+                    </div>
+                    <div class="relative" data-aos="fade-up" data-aos-delay="200">
+                        <div class="flex flex-col items-center">
+                            <div class="bg-blue-600 text-white text-xl font-bold h-12 w-12 rounded-full flex items-center justify-center mb-4 z-10">3</div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Gagnez des points</h3>
+                            <p class="text-gray-600 text-center">Accumulez automatiquement des points pour chaque police vendue.</p>
+                        </div>
+                    </div>
+                    <div class="relative" data-aos="fade-up" data-aos-delay="300">
+                        <div class="flex flex-col items-center">
+                            <div class="bg-blue-600 text-white text-xl font-bold h-12 w-12 rounded-full flex items-center justify-center mb-4 z-10">4</div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Échangez-les</h3>
+                            <p class="text-gray-600 text-center">Convertissez vos points en récompenses dans notre catalogue.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-16 text-center">
+                <a href="{% url 'login' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700" data-aos="fade-up">
+                    Je commence maintenant
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Testimonials Section -->
+    <section id="temoignages" class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl" data-aos="fade-up">
+                    Témoignages d'ambassadeurs
+                </h2>
+                <p class="mt-4 text-lg text-gray-600" data-aos="fade-up" data-aos-delay="100">
+                    Découvrez l'expérience de nos ambassadeurs qui participent déjà au programme.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+                <div class="testimonial-card bg-white p-6 rounded-lg shadow-md" data-aos="fade-up" data-aos-delay="0">
+                    <div class="flex items-center mb-4">
+                        <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span class="text-xl font-bold text-blue-700">JD</span>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900">Jean Dupont</h3>
+                            <p class="text-sm text-gray-500">Ambassadeur depuis 2024</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">
+                        "Le programme Ambassadeurs m'a permis de valoriser mon réseau. J'ai déjà échangé mes points contre plusieurs récompenses, et le processus est vraiment simple et transparent."
+                    </p>
+                    <div class="mt-4 flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+                <div class="testimonial-card bg-white p-6 rounded-lg shadow-md" data-aos="fade-up" data-aos-delay="100">
+                    <div class="flex items-center mb-4">
+                        <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span class="text-xl font-bold text-blue-700">ML</span>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900">Marie Lefebvre</h3>
+                            <p class="text-sm text-gray-500">Ambassadrice depuis 2023</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">
+                        "Un excellent moyen de m'impliquer davantage dans mon travail. Le suivi des points est très clair, et j'apprécie particulièrement la variété des récompenses proposées."
+                    </p>
+                    <div class="mt-4 flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                </div>
+                <div class="testimonial-card bg-white p-6 rounded-lg shadow-md" data-aos="fade-up" data-aos-delay="200">
+                    <div class="flex items-center mb-4">
+                        <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span class="text-xl font-bold text-blue-700">PD</span>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900">Patrick Dubois</h3>
+                            <p class="text-sm text-gray-500">Ambassadeur depuis 2024</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">
+                        "Ce programme a créé une émulation positive entre collègues. Je recommande désormais naturellement nos produits à mon entourage, et les points s'accumulent rapidement !"
+                    </p>
+                    <div class="mt-4 flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- FAQ Section -->
+    <section id="faq" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl" data-aos="fade-up">
+                    Questions fréquentes
+                </h2>
+                <p class="mt-4 text-lg text-gray-600" data-aos="fade-up" data-aos-delay="100">
+                    Tout ce que vous devez savoir sur le programme ACTIVA Ambassadeurs.
+                </p>
+            </div>
+            <div class="space-y-6 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-6 md:space-y-0">
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm" data-aos="fade-up" data-aos-delay="0">
+                    <h3 class="text-lg font-medium text-gray-900">Comment obtenir mon code ambassadeur ?</h3>
+                    <p class="mt-2 text-gray-600">
+                        Votre code ambassadeur vous est attribué par le service RH. Si vous ne l'avez pas encore reçu, contactez-les directement.
+                    </p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm" data-aos="fade-up" data-aos-delay="100">
+                    <h3 class="text-lg font-medium text-gray-900">Combien de points puis-je gagner ?</h3>
+                    <p class="mt-2 text-gray-600">
+                        Vous gagnez 1,5% de la prime nette convertie en points pour chaque police vendue grâce à votre code ambassadeur.
+                    </p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm" data-aos="fade-up" data-aos-delay="200">
+                    <h3 class="text-lg font-medium text-gray-900">Quelle est la durée de validité des points ?</h3>
+                    <p class="mt-2 text-gray-600">
+                        Les points sont valables pendant la durée de l'exercice en cours. Consultez votre espace personnel pour connaître les dates d'expiration.
+                    </p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm" data-aos="fade-up" data-aos-delay="300">
+                    <h3 class="text-lg font-medium text-gray-900">Comment utiliser mes points ?</h3>
+                    <p class="mt-2 text-gray-600">
+                        Connectez-vous à votre espace ambassadeur, accédez au catalogue de récompenses et choisissez celles qui vous intéressent en fonction de votre solde de points.
+                    </p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm" data-aos="fade-up" data-aos-delay="400">
+                    <h3 class="text-lg font-medium text-gray-900">Puis-je suivre l'historique de mes points ?</h3>
+                    <p class="mt-2 text-gray-600">
+                        Oui, votre espace personnel vous permet de consulter l'historique complet de vos points gagnés et de vos échanges.
+                    </p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm" data-aos="fade-up" data-aos-delay="500">
+                    <h3 class="text-lg font-medium text-gray-900">Comment me connecter à mon espace ambassadeur ?</h3>
+                    <p class="mt-2 text-gray-600">
+                        Utilisez simplement votre identifiant d'entreprise (AD) pour vous connecter à la plateforme.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="py-16 bg-blue-600">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-extrabold text-white sm:text-4xl" data-aos="fade-up">
+                Prêt à devenir ambassadeur ?
+            </h2>
+            <p class="mt-4 text-xl text-blue-100" data-aos="fade-up" data-aos-delay="100">
+                Connectez-vous dès maintenant et commencez à cumuler des points !
+            </p>
+            <div class="mt-8">
+                <a href="{% url 'login' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50" data-aos="fade-up" data-aos-delay="200">
+                    Accéder à mon espace
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">ACTIVA Ambassadeurs</h3>
+                    <p class="text-gray-400">
+                        Programme de recommandation interne qui récompense votre engagement et vos recommandations.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Liens rapides</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#home" class="text-gray-400 hover:text-white">Accueil</a></li>
+                        <li><a href="#avantages" class="text-gray-400 hover:text-white">Avantages</a></li>
+                        <li><a href="#fonctionnement" class="text-gray-400 hover:text-white">Fonctionnement</a></li>
+                        <li><a href="#temoignages" class="text-gray-400 hover:text-white">Témoignages</a></li>
+                        <li><a href="#faq" class="text-gray-400 hover:text-white">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-envelope mr-2"></i>
+                            <a href="mailto:ambassadeurs@activa.com" class="text-gray-400 hover:text-white">ambassadeurs@activa.com</a>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-phone mr-2"></i>
+                            <span class="text-gray-400">+123 456 789</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 ACTIVA Ambassadeurs. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Initialisation des animations -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            AOS.init({
+                duration: 800,
+                once: true,
+            });
+        });
+    </script>
+</body>
+</html>

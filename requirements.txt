@@ -1,0 +1,8 @@
+
+pip install django
+pip install django-crispy-forms
+pip install crispy-tailwind
+pip install django-rest-framework
+pip install ldap3  # Pour l'authentification AD
+pip install pillow  # Pour la gestion des images
+pip install pandas  # Pour le traitement des données d'importation

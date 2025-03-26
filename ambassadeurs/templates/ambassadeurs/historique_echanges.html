@@ -1,0 +1,385 @@
+<!-- ambassadeurs/templates/ambassadeurs/historique_echanges.html -->
+{% extends 'base.html' %}
+
+{% block title %}Historique des échanges | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Historique de mes échanges{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Filtres -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Filtrer les échanges</h2>
+        <form method="get" action="{% url 'historique_echanges' %}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label for="statut" class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                <select id="statut" name="statut" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    <option value="tous">Tous les statuts</option>
+                    {% for code, label in statuts %}
+                        <option value="{{ code }}" {% if statut_selectionne == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Période</label>
+                <select id="date" name="date" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    <option value="tous">Toutes les périodes</option>
+                    <option value="recent" {% if periode == 'recent' %}selected{% endif %}>30 derniers jours</option>
+                    <option value="mois_courant" {% if periode == 'mois_courant' %}selected{% endif %}>Mois courant</option>
+                    <option value="mois_precedent" {% if periode == 'mois_precedent' %}selected{% endif %}>Mois précédent</option>
+                    <option value="annee" {% if periode == 'annee' %}selected{% endif %}>Année en cours</option>
+                </select>
+            </div>
+            
+            <div class="md:col-span-2 flex flex-wrap gap-2 justify-end">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-filter mr-2"></i> Filtrer
+                </button>
+                
+                <a href="{% url 'historique_echanges' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-sync-alt mr-2"></i> Réinitialiser
+                </a>
+                
+                <a href="{% url 'exporter_historique_echanges' %}{% if statut_selectionne != 'tous' %}?statut={{ statut_selectionne }}{% endif %}{% if periode != 'tous' %}&date={{ periode }}{% endif %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-file-export mr-2"></i> Exporter
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Résumé des statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                    <i class="fas fa-exchange-alt text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Total échanges</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ total_echanges }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
+                    <i class="fas fa-clock text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">En attente</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ en_attente }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Complétés</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ completes }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                    <i class="fas fa-coins text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Points utilisés</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ points_utilises|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Graphique de répartition -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Répartition par statut</h3>
+        <div id="statuts-chart" class="w-full h-64"></div>
+    </div>
+    
+    <!-- Liste des échanges -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-medium text-gray-900">Mes échanges</h3>
+        </div>
+        
+        {% if echanges %}
+            <div class="divide-y divide-gray-200">
+                {% for echange in echanges %}
+                    <div class="p-6">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                            <div class="flex items-start mb-4 md:mb-0">
+                                <div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                                    {% if echange.recompense.image %}
+                                        <img src="{{ echange.recompense.image.url }}" alt="{{ echange.recompense.nom }}" class="h-full w-full object-cover">
+                                    {% else %}
+                                        <div class="flex items-center justify-center h-full w-full bg-gray-100 text-gray-400">
+                                            <i class="fas fa-gift text-2xl"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-semibold text-gray-900">{{ echange.recompense.nom }}</h4>
+                                    <div class="flex flex-wrap gap-2 mt-1">
+                                        <span class="text-sm text-gray-500">
+                                            <i class="fas fa-calendar-alt mr-1"></i> {{ echange.date_creation|date:"d/m/Y" }}
+                                        </span>
+                                        <span class="text-sm text-blue-600 font-medium">
+                                            <i class="fas fa-coins mr-1"></i> {{ echange.points_utilises|floatformat:2 }} points
+                                        </span>
+                                        <span class="px-2 py-0.5 text-xs rounded-full 
+                                            {% if echange.statut == 'en_attente' %}bg-yellow-100 text-yellow-800{% endif %}
+                                            {% if echange.statut == 'confirme' %}bg-blue-100 text-blue-800{% endif %}
+                                            {% if echange.statut == 'expedie' %}bg-purple-100 text-purple-800{% endif %}
+                                            {% if echange.statut == 'livre' %}bg-green-100 text-green-800{% endif %}
+                                            {% if echange.statut == 'annule' %}bg-red-100 text-red-800{% endif %}">
+                                            {% if echange.statut == 'en_attente' %}En attente{% endif %}
+                                            {% if echange.statut == 'confirme' %}Confirmé{% endif %}
+                                            {% if echange.statut == 'expedie' %}Expédié{% endif %}
+                                            {% if echange.statut == 'livre' %}Livré{% endif %}
+                                            {% if echange.statut == 'annule' %}Annulé{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                {% if echange.statut == 'en_attente' %}
+                                    <form method="post" action="{% url 'annuler_echange' echange.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                            <i class="fas fa-times-circle mr-1.5"></i> Annuler
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                <a href="#details-{{ echange.id }}" class="details-toggle inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <i class="fas fa-info-circle mr-1.5"></i> Détails
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Détails dépliables -->
+                        <div id="details-{{ echange.id }}" class="details-content hidden bg-gray-50 rounded-lg mt-4 p-4 border border-gray-200">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <h5 class="text-sm font-medium text-gray-700 mb-2">Détails de la récompense</h5>
+                                    <p class="text-sm text-gray-600">{{ echange.recompense.description|truncatewords:50 }}</p>
+                                    <p class="mt-2 text-sm text-gray-600">
+                                        <i class="fas fa-tag mr-1 text-gray-400"></i> {{ echange.recompense.categorie.nom }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <h5 class="text-sm font-medium text-gray-700 mb-2">Progression</h5>
+                                    <div class="relative pt-1">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <div class="text-xs font-semibold inline-block text-blue-600">
+                                                Progression
+                                            </div>
+                                            <div class="text-xs font-semibold inline-block text-blue-600">
+                                                {% if echange.statut == 'en_attente' %}25%{% endif %}
+                                                {% if echange.statut == 'confirme' %}50%{% endif %}
+                                                {% if echange.statut == 'expedie' %}75%{% endif %}
+                                                {% if echange.statut == 'livre' %}100%{% endif %}
+                                                {% if echange.statut == 'annule' %}0%{% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="flex h-2 mb-4 overflow-hidden text-xs bg-blue-200 rounded">
+                                            <div style="width: {% if echange.statut == 'en_attente' %}25%{% endif %}
+                                                            {% if echange.statut == 'confirme' %}50%{% endif %}
+                                                            {% if echange.statut == 'expedie' %}75%{% endif %}
+                                                            {% if echange.statut == 'livre' %}100%{% endif %}
+                                                            {% if echange.statut == 'annule' %}0%{% endif %}" 
+                                                class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center {% if echange.statut == 'annule' %}bg-red-500{% else %}bg-blue-500{% endif %}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between text-xs text-gray-500 px-1">
+                                        <span>Demande</span>
+                                        <span>Confirmation</span>
+                                        <span>Expédition</span>
+                                        <span>Livraison</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if echange.commentaire %}
+                                <div class="mt-4">
+                                    <h5 class="text-sm font-medium text-gray-700 mb-2">Votre commentaire</h5>
+                                    <p class="text-sm text-gray-600 italic">{{ echange.commentaire }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if echanges.has_other_pages %}
+                <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div class="flex-1 flex justify-between sm:hidden">
+                        {% if echanges.has_previous %}
+                            <a href="?page={{ echanges.previous_page_number }}{% if statut_selectionne != 'tous' %}&statut={{ statut_selectionne }}{% endif %}{% if periode != 'tous' %}&date={{ periode }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Précédent
+                            </a>
+                        {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed">
+                                Précédent
+                            </span>
+                        {% endif %}
+                        {% if echanges.has_next %}
+                            <a href="?page={{ echanges.next_page_number }}{% if statut_selectionne != 'tous' %}&statut={{ statut_selectionne }}{% endif %}{% if periode != 'tous' %}&date={{ periode }}{% endif %}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Suivant
+                            </a>
+                        {% else %}
+                            <span class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed">
+                                Suivant
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Affichage de <span class="font-medium">{{ echanges.start_index }}</span> à <span class="font-medium">{{ echanges.end_index }}</span> sur <span class="font-medium">{{ echanges.paginator.count }}</span> échanges
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                {% if echanges.has_previous %}
+                                    <a href="?page={{ echanges.previous_page_number }}{% if statut_selectionne != 'tous' %}&statut={{ statut_selectionne }}{% endif %}{% if periode != 'tous' %}&date={{ periode }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">Précédent</span>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-500 cursor-not-allowed">
+                                        <span class="sr-only">Précédent</span>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                {% endif %}
+                                
+                                {% for i in echanges.paginator.page_range %}
+                                    {% if echanges.number == i %}
+                                        <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600">
+                                            {{ i }}
+                                        </span>
+                                    {% elif i > echanges.number|add:'-3' and i < echanges.number|add:'3' %}
+                                        <a href="?page={{ i }}{% if statut_selectionne != 'tous' %}&statut={{ statut_selectionne }}{% endif %}{% if periode != 'tous' %}&date={{ periode }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                            {{ i }}
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if echanges.has_next %}
+                                    <a href="?page={{ echanges.next_page_number }}{% if statut_selectionne != 'tous' %}&statut={{ statut_selectionne }}{% endif %}{% if periode != 'tous' %}&date={{ periode }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">Suivant</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-gray-100 text-sm font-medium text-gray-500 cursor-not-allowed">
+                                        <span class="sr-only">Suivant</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                {% endif %}
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <div class="flex flex-col items-center">
+                    <i class="fas fa-exchange-alt fa-3x mb-4 text-gray-300"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun échange trouvé</h3>
+                    <p>Vous n'avez pas encore effectué d'échange ou aucun échange ne correspond aux critères sélectionnés.</p>
+                    <a href="{% url 'catalogue' %}" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-gift mr-2"></i> Voir le catalogue
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle des détails
+        document.querySelectorAll('.details-toggle').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                targetElement.classList.toggle('hidden');
+            });
+        });
+        
+        // Données pour le graphique
+        var statutsData = [
+            {% for statut, count in statuts_count.items %}
+                {{ count }}{% if not forloop.last %},{% endif %}
+            {% empty %}
+                0, 0, 0, 0, 0
+            {% endfor %}
+        ];
+        
+        var statutsLabels = [
+            {% for statut, count in statuts_count.items %}
+                '{{ statut|title }}'{% if not forloop.last %},{% endif %}
+            {% empty %}
+                'En attente', 'Confirmé', 'Expédié', 'Livré', 'Annulé'
+            {% endfor %}
+        ];
+        
+        // Configuration du graphique
+        var options = {
+            chart: {
+                type: 'donut',
+                height: 260,
+                fontFamily: 'Poppins, sans-serif',
+            },
+            series: statutsData,
+            labels: statutsLabels,
+            colors: ['#eab308', '#3b82f6', '#8b5cf6', '#10b981', '#ef4444'],
+            legend: {
+                position: 'bottom',
+                fontFamily: 'Poppins, sans-serif',
+            },
+            tooltip: {
+                theme: 'light',
+                y: {
+                    formatter: function(value) {
+                        return value + " échange" + (value > 1 ? "s" : "");
+                    }
+                }
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '50%',
+                        labels: {
+                            show: true,
+                            total: {
+                                show: true,
+                                label: 'Total',
+                                formatter: function(w) {
+                                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        
+        // Initialiser le graphique
+        var chart = new ApexCharts(document.querySelector("#statuts-chart"), options);
+        chart.render();
+    });
+</script>
+{% endblock %}

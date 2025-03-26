@@ -1,0 +1,103 @@
+<!-- templates/includes/sidebar_content.html -->
+
+{% if user.is_authenticated %}
+    <!-- Pour les ambassadeurs -->
+    {% if not user.is_staff and not user.profile.is_admin %}
+        <div class="px-4 mb-2">
+            <div class="text-xs font-semibold text-blue-100 uppercase tracking-wider">
+                MENU
+            </div>
+        </div>
+        <a href="{% url 'dashboard' %}" class="sidebar-link flex items-center px-4 py-3 {% if request.path == '/' %}active{% endif %}">
+            <i class="fas fa-tachometer-alt w-5"></i>
+            <span class="ml-3">Tableau de bord</span>
+        </a>
+        <a href="{% url 'catalogue' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'catalogue' in request.path %}active{% endif %}">
+            <i class="fas fa-gift w-5"></i>
+            <span class="ml-3">Catalogue</span>
+        </a>
+        <a href="{% url 'historique_points' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'historique/points' in request.path %}active{% endif %}">
+            <i class="fas fa-coins w-5"></i>
+            <span class="ml-3">Mes points</span>
+        </a>
+        <a href="{% url 'historique_polices' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'historique/polices' in request.path %}active{% endif %}">
+            <i class="fas fa-file-contract w-5"></i>
+            <span class="ml-3">Mes polices</span>
+        </a>
+        <a href="{% url 'historique_echanges' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'historique/echanges' in request.path %}active{% endif %}">
+            <i class="fas fa-exchange-alt w-5"></i>
+            <span class="ml-3">Mes échanges</span>
+        </a>
+    
+    <!-- Pour les administrateurs -->
+    {% else %}
+        <div class="px-4 mb-2">
+            <div class="text-xs font-semibold text-blue-100 uppercase tracking-wider">
+                ADMINISTRATION
+            </div>
+        </div>
+        <a href="{% url 'backoffice:dashboard' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice' in request.path and '/backoffice/' == request.path %}active{% endif %}">
+            <i class="fas fa-tachometer-alt w-5"></i>
+            <span class="ml-3">Tableau de bord</span>
+        </a>
+        <a href="{% url 'backoffice:gestion_ambassadeurs' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice/ambassadeurs' in request.path %}active{% endif %}">
+            <i class="fas fa-users w-5"></i>
+            <span class="ml-3">Ambassadeurs</span>
+        </a>
+        <a href="{% url 'backoffice:gestion_recompenses' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice/recompenses' in request.path %}active{% endif %}">
+            <i class="fas fa-gift w-5"></i>
+            <span class="ml-3">Récompenses</span>
+        </a>
+        <a href="{% url 'backoffice:gestion_echanges' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice/echanges' in request.path %}active{% endif %}">
+            <i class="fas fa-exchange-alt w-5"></i>
+            <span class="ml-3">Échanges</span>
+        </a>
+        
+        <div class="px-4 mt-6 mb-2">
+            <div class="text-xs font-semibold text-blue-100 uppercase tracking-wider">
+                PARAMÈTRES
+            </div>
+        </div>
+        <a href="{% url 'backoffice:configuration_systeme' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice/configuration' in request.path %}active{% endif %}">
+            <i class="fas fa-cogs w-5"></i>
+            <span class="ml-3">Configuration</span>
+        </a>
+        <a href="{% url 'backoffice:gestion_exercices' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice/exercices' in request.path %}active{% endif %}">
+            <i class="fas fa-calendar-alt w-5"></i>
+            <span class="ml-3">Exercices</span>
+        </a>
+        
+        <div class="px-4 mt-6 mb-2">
+            <div class="text-xs font-semibold text-blue-100 uppercase tracking-wider">
+                OUTILS
+            </div>
+        </div>
+        <a href="{% url 'backoffice:importer_donnees' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice/import' in request.path %}active{% endif %}">
+            <i class="fas fa-file-import w-5"></i>
+            <span class="ml-3">Importation</span>
+        </a>
+        <a href="{% url 'backoffice:rapport_points' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice/rapports' in request.path %}active{% endif %}">
+            <i class="fas fa-chart-bar w-5"></i>
+            <span class="ml-3">Rapports</span>
+        </a>
+        <a href="{% url 'backoffice:gestion_codes_ambassadeurs' %}" class="sidebar-link flex items-center px-4 py-3 {% if 'backoffice/codes-ambassadeurs' in request.path %}active{% endif %}">
+            <i class="fas fa-id-card w-5"></i>
+            <span class="ml-3">Codes ambassadeurs</span>
+        </a>
+    {% endif %}
+    
+    <!-- Section commune (compte) -->
+    <div class="px-4 mt-6 mb-2">
+        <div class="text-xs font-semibold text-blue-100 uppercase tracking-wider">
+            COMPTE
+        </div>
+    </div>
+    <a href=" " class="sidebar-link flex items-center px-4 py-3 {% if 'profile' in request.path %}active{% endif %}">
+        <i class="fas fa-user-circle w-5"></i>
+        <span class="ml-3">Mon profil</span>
+    </a>
+    <a href="{% url 'logout' %}" class="sidebar-link flex items-center px-4 py-3">
+        <i class="fas fa-sign-out-alt w-5"></i>
+        <span class="ml-3">Déconnexion</span>
+    </a>
+{% endif %}

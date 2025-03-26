@@ -1,0 +1,341 @@
+<!-- ambassadeurs/templates/ambassadeurs/dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Tableau de bord | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Bienvenue et résumé des points -->
+    <div class="mb-8">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Bienvenue, {{ ambassadeur.nom_complet }}</h2>
+                    <p class="text-gray-600 mt-1">Code ambassadeur: <span class="font-semibold">{{ ambassadeur.code_ambassadeur }}</span></p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                        <div class="text-sm text-blue-600 mb-1">Solde actuel ({{ exercice_actif.nom }})</div>
+                        <div class="flex items-end">
+                            <span class="text-3xl font-bold text-blue-700">{{ points_exercice|floatformat:2 }}</span>
+                            <span class="ml-1 text-blue-500">points</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Total points -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                    <i class="fas fa-coins text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Total des points</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ points_total|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Polices vendues -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                    <i class="fas fa-file-contract text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Polices vendues</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ ambassadeur.polices.count }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Récompenses échangées -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                    <i class="fas fa-gift text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500">Récompenses échangées</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ ambassadeur.echanges.count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique d'évolution des points (derniers mois) -->
+    <div class="mb-8">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Évolution de vos points (6 derniers mois)</h3>
+            <div id="points-chart" class="w-full h-64"></div>
+        </div>
+    </div>
+
+    <!-- Deux colonnes pour les dernières polices et récompenses -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Dernières polices -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">Dernières polices vendues</h3>
+                <a href="{% url 'historique_polices' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    Voir tout <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            
+            {% if derniers_polices %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Police</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Prime</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for police in derniers_polices %}
+                                <tr>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ police.numero_police }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ police.date_paiement|date:"d/m/Y" }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">{{ police.prime_nette|floatformat:2 }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600 text-right">
+                                        {% for point in police.points.all %}
+                                            {{ point.montant|floatformat:2 }}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-gray-500">
+                    <p>Aucune police vendue pour le moment.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Derniers échanges -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">Derniers échanges</h3>
+                <a href="{% url 'historique_echanges' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    Voir tout <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            
+            {% if derniers_echanges %}
+                <div class="space-y-4">
+                    {% for echange in derniers_echanges %}
+                        <div class="flex items-center p-3 border border-gray-200 rounded-lg">
+                            <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                                {% if echange.recompense.image %}
+                                    <img src="{{ echange.recompense.image.url }}" alt="{{ echange.recompense.nom }}" class="h-full w-full object-cover">
+                                {% else %}
+                                    <div class="flex items-center justify-center h-full w-full bg-gray-100 text-gray-400">
+                                        <i class="fas fa-gift"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="ml-4 flex-grow">
+                                <h4 class="text-sm font-medium text-gray-900">{{ echange.recompense.nom }}</h4>
+                                <div class="flex justify-between">
+                                    <p class="text-sm text-gray-500">{{ echange.date_creation|date:"d/m/Y" }}</p>
+                                    <p class="text-sm font-medium text-blue-600">{{ echange.points_utilises|floatformat:2 }} points</p>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if echange.statut == 'en_attente' %}bg-yellow-100 text-yellow-800{% endif %}
+                                    {% if echange.statut == 'confirme' %}bg-blue-100 text-blue-800{% endif %}
+                                    {% if echange.statut == 'expedie' %}bg-purple-100 text-purple-800{% endif %}
+                                    {% if echange.statut == 'livre' %}bg-green-100 text-green-800{% endif %}
+                                    {% if echange.statut == 'annule' %}bg-red-100 text-red-800{% endif %}">
+                                    {% if echange.statut == 'en_attente' %}En attente{% endif %}
+                                    {% if echange.statut == 'confirme' %}Confirmé{% endif %}
+                                    {% if echange.statut == 'expedie' %}Expédié{% endif %}
+                                    {% if echange.statut == 'livre' %}Livré{% endif %}
+                                    {% if echange.statut == 'annule' %}Annulé{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-gray-500">
+                    <p>Aucun échange effectué pour le moment.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Récompenses recommandées -->
+    <div class="mb-8">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-800">Récompenses recommandées</h3>
+                <a href="{% url 'catalogue' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    Voir tout le catalogue <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            
+            {% if recompenses_recommandees %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {% for recompense in recompenses_recommandees %}
+                        <div class="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                            <div class="h-32 overflow-hidden bg-gray-200">
+                                {% if recompense.image %}
+                                    <img src="{{ recompense.image.url }}" alt="{{ recompense.nom }}" class="h-full w-full object-cover">
+                                {% else %}
+                                    <div class="flex items-center justify-center h-full w-full bg-gray-100 text-gray-400">
+                                        <i class="fas fa-gift fa-3x"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="p-4">
+                                <h4 class="text-sm font-medium text-gray-900 mb-1">{{ recompense.nom }}</h4>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-blue-600 font-medium">{{ recompense.cout_points|floatformat:2 }} points</span>
+                                    <a href="{% url 'detail_recompense' recompense.id %}" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded">
+                                        Voir
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-gray-500">
+                    <p>Aucune récompense disponible pour le moment avec votre solde de points.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Données pour le graphique d'évolution des points
+        // Ces données devraient être générées depuis la vue
+        var pointsData = [
+            {% for point in ambassadeur.points_gagnes.all|dictsortreversed:"date_creation"|slice:":6" %}
+                {
+                    month: "{{ point.date_creation|date:'M Y' }}",
+                    points: {{ point.montant|floatformat:2 }}
+                }{% if not forloop.last %},{% endif %}
+            {% empty %}
+                // Données fictives si aucun point n'est disponible
+                {month: "Jan", points: 0},
+                {month: "Fév", points: 0},
+                {month: "Mar", points: 0},
+                {month: "Avr", points: 0},
+                {month: "Mai", points: 0},
+                {month: "Juin", points: 0}
+            {% endfor %}
+        ];
+        
+        // Configuration du graphique
+        var options = {
+            chart: {
+                type: 'line',
+                height: 280,
+                toolbar: {
+                    show: false
+                },
+                fontFamily: 'Poppins, sans-serif',
+            },
+            series: [{
+                name: 'Points',
+                data: pointsData.map(item => item.points).reverse()
+            }],
+            xaxis: {
+                categories: pointsData.map(item => item.month).reverse(),
+                labels: {
+                    style: {
+                        colors: '#64748b',
+                        fontSize: '12px',
+                        fontFamily: 'Poppins, sans-serif',
+                    },
+                },
+                axisBorder: {
+                    show: false
+                },
+                axisTicks: {
+                    show: false
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: '#64748b',
+                        fontSize: '12px',
+                        fontFamily: 'Poppins, sans-serif',
+                    },
+                },
+            },
+            colors: ['#2563eb'],
+            stroke: {
+                curve: 'smooth',
+                width: 3
+            },
+            grid: {
+                borderColor: '#e2e8f0',
+                strokeDashArray: 4,
+                xaxis: {
+                    lines: {
+                        show: true
+                    }
+                },
+                yaxis: {
+                    lines: {
+                        show: true
+                    }
+                },
+            },
+            markers: {
+                size: 5,
+                colors: ["#2563eb"],
+                strokeColors: "#ffffff",
+                strokeWidth: 2,
+                hover: {
+                    size: 7,
+                }
+            },
+            tooltip: {
+                theme: 'light',
+                y: {
+                    formatter: function(value) {
+                        return value + " points";
+                    }
+                }
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: 'light',
+                    type: "vertical",
+                    shadeIntensity: 0.2,
+                    gradientToColors: ['#dbeafe'],
+                    inverseColors: false,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.1,
+                }
+            }
+        };
+        
+        // Initialiser le graphique
+        var chart = new ApexCharts(document.querySelector("#points-chart"), options);
+        chart.render();
+    });
+</script>
+{% endblock %}

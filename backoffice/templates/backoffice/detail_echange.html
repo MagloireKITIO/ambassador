@@ -1,0 +1,311 @@
+<!-- backoffice/templates/backoffice/detail_echange.html -->
+{% extends 'base.html' %}
+
+{% block title %}Détail échange #{{ echange.id }} | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Détail échange #{{ echange.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Bouton retour -->
+    <div class="mb-6">
+        <a href="{% url 'backoffice:gestion_echanges' %}" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+            <i class="fas fa-arrow-left mr-2"></i> Retour à la liste des échanges
+        </a>
+    </div>
+    
+    <!-- Statut et actions -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div class="flex items-center mb-4 md:mb-0">
+                <div class="mr-4">
+                    {% if echange.statut == 'en_attente' %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                            <i class="fas fa-clock mr-2"></i> En attente
+                        </span>
+                    {% elif echange.statut == 'confirme' %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            <i class="fas fa-check mr-2"></i> Confirmé
+                        </span>
+                    {% elif echange.statut == 'expedie' %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                            <i class="fas fa-shipping-fast mr-2"></i> Expédié
+                        </span>
+                    {% elif echange.statut == 'livre' %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-box-open mr-2"></i> Livré
+                        </span>
+                    {% elif echange.statut == 'annule' %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            <i class="fas fa-times mr-2"></i> Annulé
+                        </span>
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Dernière mise à jour: {{ echange.date_modification|date:"d/m/Y H:i" }}</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap gap-2">
+                {% if echange.statut == 'en_attente' %}
+                    <form method="post" action="{% url 'backoffice:valider_echange' echange.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <i class="fas fa-check-circle mr-2"></i> Confirmer
+                        </button>
+                    </form>
+                    
+                    <form method="post" action="{% url 'backoffice:annuler_echange' echange.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <i class="fas fa-times-circle mr-2"></i> Annuler
+                        </button>
+                    </form>
+                {% elif echange.statut == 'confirme' %}
+                    <form method="post" action="{% url 'backoffice:expedier_echange' echange.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                            <i class="fas fa-shipping-fast mr-2"></i> Marquer comme expédié
+                        </button>
+                    </form>
+                {% elif echange.statut == 'expedie' %}
+                    <form method="post" action="{% url 'backoffice:livrer_echange' echange.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <i class="fas fa-box-open mr-2"></i> Marquer comme livré
+                        </button>
+                    </form>
+                {% endif %}
+                
+                {% if echange.statut != 'annule' and echange.statut != 'livre' %}
+                    <a href="{% url 'backoffice:ajouter_commentaire' echange.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-comment-alt mr-2"></i> Ajouter un commentaire
+                    </a>
+                {% endif %}
+                
+                <a href="{% url 'backoffice:envoyer_notification' echange.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-envelope mr-2"></i> Notifier l'ambassadeur
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Détails de l'échange -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Colonne de gauche: Informations générales -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-medium text-gray-900">Informations de l'échange</h3>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Référence</dt>
+                            <dd class="mt-1 text-sm text-gray-900">#{{ echange.id }}</dd>
+                        </div>
+                        
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Date de demande</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ echange.date_creation|date:"d/m/Y H:i" }}</dd>
+                        </div>
+                        
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Exercice</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ echange.exercice.nom }}</dd>
+                        </div>
+                        
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Points utilisés</dt>
+                            <dd class="mt-1 text-sm text-gray-900 font-semibold text-blue-600">
+                                <dd class="mt-1 text-sm text-gray-900 font-semibold text-blue-600">
+                                    {{ echange.points_utilises|floatformat:2 }} points
+                                </dd>
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <dt class="text-sm font-medium text-gray-500">Commentaire de l'ambassadeur</dt>
+                                <dd class="mt-1 text-sm text-gray-900">
+                                    {% if echange.commentaire %}
+                                        {{ echange.commentaire }}
+                                    {% else %}
+                                        <span class="text-gray-400">Aucun commentaire</span>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+                
+                <!-- Récompense -->
+                <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-medium text-gray-900">Récompense demandée</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex flex-col md:flex-row">
+                            <div class="h-48 w-48 bg-gray-100 rounded-lg overflow-hidden mb-4 md:mb-0 md:mr-6 flex-shrink-0">
+                                {% if echange.recompense.image %}
+                                    <img src="{{ echange.recompense.image.url }}" alt="{{ echange.recompense.nom }}" class="h-full w-full object-cover">
+                                {% else %}
+                                    <div class="flex items-center justify-center h-full w-full text-gray-400">
+                                        <i class="fas fa-gift fa-3x"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900 mb-2">{{ echange.recompense.nom }}</h4>
+                                <p class="text-sm text-gray-500 mb-4">{{ echange.recompense.description }}</p>
+                                <div class="flex items-center">
+                                    <span class="mr-3 text-sm font-medium text-blue-600">{{ echange.recompense.cout_points|floatformat:2 }} points</span>
+                                    <span class="mr-3 text-sm text-gray-500">Catégorie: {{ echange.recompense.categorie.nom }}</span>
+                                    <span class="text-sm text-gray-500">
+                                        Stock: 
+                                        {% if echange.recompense.quantite_disponible == -1 %}
+                                            Illimité
+                                        {% else %}
+                                            {{ echange.recompense.quantite_disponible }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Historique des actions -->
+                <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-medium text-gray-900">Historique</h3>
+                    </div>
+                    <div class="p-6">
+                        <ul class="space-y-4">
+                            <li class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-500">
+                                        <i class="fas fa-plus-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-900">Demande d'échange créée</p>
+                                    <p class="text-sm text-gray-500">{{ echange.date_creation|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </li>
+                            
+                            {% if echange.statut != 'en_attente' %}
+                                {% if echange.statut == 'annule' %}
+                                    <li class="flex items-start">
+                                        <div class="flex-shrink-0">
+                                            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-red-100 text-red-500">
+                                                <i class="fas fa-times-circle"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <p class="text-sm font-medium text-gray-900">Échange annulé</p>
+                                            <p class="text-sm text-gray-500">{{ echange.date_modification|date:"d/m/Y H:i" }}</p>
+                                        </div>
+                                    </li>
+                                {% else %}
+                                    <li class="flex items-start">
+                                        <div class="flex-shrink-0">
+                                            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-500">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <p class="text-sm font-medium text-gray-900">Échange confirmé</p>
+                                            <p class="text-sm text-gray-500">{{ echange.date_modification|date:"d/m/Y H:i" }}</p>
+                                        </div>
+                                    </li>
+                                    
+                                    {% if echange.statut == 'expedie' or echange.statut == 'livre' %}
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-purple-100 text-purple-500">
+                                                    <i class="fas fa-shipping-fast"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-900">Récompense expédiée</p>
+                                                <p class="text-sm text-gray-500">{{ echange.date_modification|date:"d/m/Y H:i" }}</p>
+                                            </div>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% if echange.statut == 'livre' %}
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-500">
+                                                    <i class="fas fa-box-open"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-900">Récompense livrée</p>
+                                                <p class="text-sm text-gray-500">{{ echange.date_modification|date:"d/m/Y H:i" }}</p>
+                                            </div>
+                                        </li>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Colonne de droite: Ambassadeur -->
+            <div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-medium text-gray-900">Informations de l'ambassadeur</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-600 h-12 w-12 rounded-full flex items-center justify-center text-white text-lg font-bold">
+                                {{ echange.ambassadeur.code_ambassadeur|slice:":2" }}
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium text-gray-900">{{ echange.ambassadeur.nom_complet }}</h4>
+                                <p class="text-sm text-gray-500">{{ echange.ambassadeur.code_ambassadeur }}</p>
+                            </div>
+                        </div>
+                        
+                        <dl class="grid grid-cols-1 gap-y-4 mt-6">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Email</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ echange.ambassadeur.email }}</dd>
+                            </div>
+                            
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Date d'inscription</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ echange.ambassadeur.date_creation|date:"d/m/Y" }}</dd>
+                            </div>
+                            
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Solde actuel</dt>
+                                <dd class="mt-1 text-sm text-gray-900 font-semibold text-blue-600">
+                                    {{ echange.ambassadeur.get_solde_points|floatformat:2 }} points
+                                </dd>
+                            </div>
+                            
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Polices vendues</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ echange.ambassadeur.polices.count }}</dd>
+                            </div>
+                            
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Échanges réalisés</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ echange.ambassadeur.echanges.count }}</dd>
+                            </div>
+                        </dl>
+                        
+                        <div class="mt-6">
+                            <a href="{% url 'backoffice:detail_ambassadeur' echange.ambassadeur.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full justify-center">
+                                <i class="fas fa-user mr-2"></i> Voir le profil complet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}

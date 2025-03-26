@@ -1,0 +1,104 @@
+<!-- backoffice/templates/backoffice/configuration_systeme.html -->
+{% extends 'base.html' %}
+
+{% block title %}Configuration du système | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Configuration du système{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-medium text-gray-900">Paramètres du programme</h3>
+            <p class="mt-1 text-sm text-gray-500">
+                Ces paramètres affectent le fonctionnement global du programme ACTIVA Ambassadeurs.
+            </p>
+        </div>
+        
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label for="{{ form.pourcentage_points.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Pourcentage de points <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    {{ form.pourcentage_points }}
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 sm:text-sm">%</span>
+                    </div>
+                </div>
+                {% if form.pourcentage_points.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.pourcentage_points.errors.0 }}</p>
+                {% endif %}
+                <p class="mt-1 text-sm text-gray-500">Pourcentage de la prime nette converti en points (par défaut: 1,5%)</p>
+            </div>
+            
+            <div>
+                <label for="{{ form.duree_validite_points.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Durée de validité des points <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    {{ form.duree_validite_points }}
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 sm:text-sm">jours</span>
+                    </div>
+                </div>
+                {% if form.duree_validite_points.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.duree_validite_points.errors.0 }}</p>
+                {% endif %}
+                <p class="mt-1 text-sm text-gray-500">Durée de validité des points en jours (par défaut: 365 jours)</p>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="pt-5 flex justify-end">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Enregistrer les paramètres
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Exercices actifs -->
+    <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Exercices actifs</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Les exercices actifs définissent les périodes pendant lesquelles les points sont distribués.
+                </p>
+            </div>
+            <a href="{% url 'backoffice:gestion_exercices' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i class="fas fa-cog mr-2"></i> Gérer
+            </a>
+        </div>
+        
+        <div class="divide-y divide-gray-200">
+            {% for exercice in exercices %}
+                {% if exercice.actif %}
+                    <div class="p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900">{{ exercice.nom }}</h4>
+                                <p class="text-sm text-gray-500">{{ exercice.date_debut|date:"d/m/Y" }} au {{ exercice.date_fin|date:"d/m/Y" }}</p>
+                            </div>
+                            <div>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i> Actif
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% empty %}
+                <div class="p-6 text-center">
+                    <div class="py-4 text-yellow-600 bg-yellow-50 rounded-lg">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <span>Aucun exercice actif trouvé. Veuillez en créer un pour le bon fonctionnement du programme.</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

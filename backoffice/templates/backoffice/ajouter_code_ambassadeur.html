@@ -1,0 +1,66 @@
+<!-- backoffice/templates/backoffice/ajouter_code_ambassadeur.html -->
+{% extends 'base.html' %}
+
+{% block title %}Ajouter un code ambassadeur | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Ajouter un code ambassadeur{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Bouton retour -->
+    <div class="mb-6">
+        <a href="{% url 'backoffice:gestion_codes_ambassadeurs' %}" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+            <i class="fas fa-arrow-left mr-2"></i> Retour à la liste des codes
+        </a>
+    </div>
+    
+    <!-- Formulaire -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-medium text-gray-900">Ajouter un nouveau code ambassadeur</h3>
+            <p class="mt-1 text-sm text-gray-500">
+                Créez un code ambassadeur qui pourra être attribué à un utilisateur.
+            </p>
+        </div>
+        
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+            
+            <!-- Champ code -->
+            <div>
+                <label for="code_ambassadeur" class="block text-sm font-medium text-gray-700">
+                    Code ambassadeur <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1">
+                    <input type="text" name="code_ambassadeur" id="code_ambassadeur" required 
+                           class="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                           pattern="[A-Za-z0-9]+" title="Le code ambassadeur doit contenir uniquement des lettres et des chiffres">
+                </div>
+                <p class="mt-1 text-sm text-gray-500">Format recommandé: deux lettres suivies de quatre chiffres (ex: AA1234).</p>
+            </div>
+            
+            <!-- Champ nom complet -->
+            <div>
+                <label for="nom_complet" class="block text-sm font-medium text-gray-700">
+                    Nom complet
+                </label>
+                <div class="mt-1">
+                    <input type="text" name="nom_complet" id="nom_complet" 
+                           class="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <p class="mt-1 text-sm text-gray-500">Optionnel. Sera remplacé par le nom de l'utilisateur lors de l'association.</p>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="pt-5 flex justify-end space-x-3 border-t border-gray-200">
+                <a href="{% url 'backoffice:gestion_codes_ambassadeurs' %}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Annuler
+                </a>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Créer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

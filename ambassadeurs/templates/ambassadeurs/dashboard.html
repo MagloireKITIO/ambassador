@@ -13,7 +13,15 @@
             <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">Bienvenue, {{ ambassadeur.nom_complet }}</h2>
-                    <p class="text-gray-600 mt-1">Code ambassadeur: <span class="font-semibold">{{ ambassadeur.code_ambassadeur }}</span></p>
+                    <p class="text-gray-600 mt-1">Code ambassadeur: <span class="font-semibold">
+                        {% if ambassadeur.type_ambassadeur == 'vie' %}
+                            {{ ambassadeur.code_ambassadeur_vie }}
+                        {% elif ambassadeur.type_ambassadeur == 'non_vie' %}
+                            {{ ambassadeur.code_ambassadeur_non_vie }}
+                        {% else %}
+                            {{ ambassadeur.code_ambassadeur_vie }} / {{ ambassadeur.code_ambassadeur_non_vie }}
+                        {% endif %}
+                        </span></p>
                 </div>
                 <div class="mt-4 md:mt-0">
                     <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">

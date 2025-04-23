@@ -83,7 +83,13 @@
                     {% for ambassadeur in page_obj %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ ambassadeur.code_ambassadeur }}
+                                {% if ambassadeur.type_ambassadeur == 'vie' %}
+                                    {{ ambassadeur.code_ambassadeur_vie }}
+                                {% elif ambassadeur.type_ambassadeur == 'non_vie' %}
+                                    {{ ambassadeur.code_ambassadeur_non_vie }}
+                                {% else %}
+                                    {{ ambassadeur.code_ambassadeur_vie }} / {{ ambassadeur.code_ambassadeur_non_vie }}
+                                {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ ambassadeur.nom_complet }}

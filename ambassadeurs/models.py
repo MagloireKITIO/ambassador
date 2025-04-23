@@ -64,6 +64,17 @@ class Ambassadeur(models.Model):
         
         return points_gagnes - points_utilises
     
+    def get_code_ambassadeur(self):
+        """
+        Retourne le code ambassadeur en fonction du type d'ambassadeur
+        """
+        if self.type_ambassadeur == 'vie':
+            return self.code_ambassadeur_vie
+        elif self.type_ambassadeur == 'non_vie':
+            return self.code_ambassadeur_non_vie
+        else:
+            return f"{self.code_ambassadeur_vie} / {self.code_ambassadeur_non_vie}"
+    
     class Meta:
         verbose_name = "Ambassadeur"
         verbose_name_plural = "Ambassadeurs"

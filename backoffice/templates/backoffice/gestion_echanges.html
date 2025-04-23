@@ -120,7 +120,15 @@
                                         {{ echange.ambassadeur.code_ambassadeur|slice:":2" }}
                                     </div>
                                     <div>
-                                        <div class="font-medium">{{ echange.ambassadeur.code_ambassadeur }}</div>
+                                        <div class="font-medium">
+                                            {% if echange.ambassadeur.type_ambassadeur == 'vie' %}
+                                                {{ echange.ambassadeur.code_ambassadeur_vie }}
+                                            {% elif echange.ambassadeur.type_ambassadeur == 'non_vie' %}
+                                                {{ echange.ambassadeur.code_ambassadeur_non_vie }}
+                                            {% else %}
+                                                {{ echange.ambassadeur.code_ambassadeur_vie }} / {{ echange.ambassadeur.code_ambassadeur_non_vie }}
+                                            {% endif %}
+                                        </div>
                                         <div class="text-xs text-gray-400">{{ echange.ambassadeur.nom_complet }}</div>
                                     </div>
                                 </div>

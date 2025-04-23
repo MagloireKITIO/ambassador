@@ -105,7 +105,10 @@
                             {% for echange in echanges_en_attente %}
                                 <tr>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">#{{ echange.id }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ echange.ambassadeur.code_ambassadeur }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        {{ echange.ambassadeur.code_ambassadeur }}
+
+                                    </td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ echange.recompense.nom|truncatechars:20 }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">{{ echange.points_utilises|floatformat:2 }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-right">

@@ -481,10 +481,6 @@ def exporter_historique_echanges(request):
         # Trier par date de création (décroissant)
         echanges = echanges.order_by('-date_creation')
         
-        # Générer le fichier CSV
-        import csv
-        from django.http import HttpResponse
-        
         response = HttpResponse(content_type='text/csv')
         
         if filename_parts:

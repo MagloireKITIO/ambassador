@@ -265,7 +265,15 @@
                             </div>
                             <div class="ml-4">
                                 <h4 class="text-lg font-medium text-gray-900">{{ echange.ambassadeur.nom_complet }}</h4>
-                                <p class="text-sm text-gray-500">{{ echange.ambassadeur.code_ambassadeur }}</p>
+                                <p class="text-sm text-gray-500">
+                                    {% if echange.ambassadeur.type_ambassadeur == 'vie' %}
+                                        {{ echange.ambassadeur.code_ambassadeur_vie }}
+                                    {% elif echange.ambassadeur.type_ambassadeur == 'non_vie' %}
+                                        {{ echange.ambassadeur.code_ambassadeur_non_vie }}
+                                    {% else %}
+                                        {{ echange.ambassadeur.code_ambassadeur_vie }} / {{ echange.ambassadeur.code_ambassadeur_non_vie }}
+                                    {% endif %}
+                                </p>
                             </div>
                         </div>
                         

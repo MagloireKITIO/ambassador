@@ -81,7 +81,8 @@ def gestion_ambassadeurs(request):
     """
     Vue pour la gestion des ambassadeurs
     """
-    ambassadeurs = Ambassadeur.objects.all().order_by('code_ambassadeur')
+    ambassadeurs = Ambassadeur.objects.all().order_by('nom_complet')  # Changé pour utiliser nom_complet au lieu de code_ambassadeur
+
     
     # Filtrer par statut si spécifié
     statut = request.GET.get('statut')
@@ -94,9 +95,9 @@ def gestion_ambassadeurs(request):
     recherche = request.GET.get('recherche')
     if recherche:
         ambassadeurs = ambassadeurs.filter(
-            code_ambassadeur__icontains=recherche
-        ) | ambassadeurs.filter(
-            nom_complet__icontains=recherche
+            Q(code_ambassadeur_vie__icontains=recherche) |  # Modifié pour utiliser code_ambassadeur_vie
+            Q(code_ambassadeur_non_vie__icontains=recherche) |  # Ajouté pour utiliser code_ambassadeur_non_vie
+            Q(nom_complet__icontains=recherche)
         )
     
     # Pagination
@@ -494,8 +495,8 @@ def exporter_rapport_points_csv(points_par_ambassadeur, points_utilises, exercic
     writer.writerow(['Code Ambassadeur', 'Nom Complet', 'Points Gagnés', 'Points Utilisés', 'Solde'])
     
     # Convertir les données en dictionnaires pour fusionner les résultats
-    dict_points = {row['ambassadeur__code_ambassadeur']: {
-        'code': row['ambassadeur__code_ambassadeur'],
+    dict_points = {row['ambassadeur__nom_complet']: { 
+        'code': row['ambassadeur__nom_complet'],
         'nom': row['ambassadeur__nom_complet'],
         'gagnes': row['total_points'],
         'utilises': 0,

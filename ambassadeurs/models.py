@@ -96,46 +96,49 @@ class Police(models.Model):
     source_systeme = models.CharField(max_length=50, choices=[('ORASS', 'ORASS'), ('HELIOS', 'HELIOS')])
     date_paiement = models.DateField()
     date_creation = models.DateTimeField(auto_now_add=True)
+
+    type_police = models.CharField(max_length=100, blank=True, null=True, 
+                                  help_text="Type spécifique de police (ex: Individuel accident, Automobile)")
     
     def __str__(self):
         return f"Police {self.numero_police} - {self.get_type_assurance_display()} - {self.ambassadeur.nom_complet}"
     
-    def save(self, *args, **kwargs):
-        # Vérifier si c'est une nouvelle police
-        creation = self.pk is None
+    # def save(self, *args, **kwargs):
+    #     # Vérifier si c'est une nouvelle police
+    #     creation = self.pk is None
         
-        # Sauvegarder la police
-        super().save(*args, **kwargs)
+    #     # Sauvegarder la police
+    #     super().save(*args, **kwargs)
         
-        # Créer automatiquement les points si c'est une nouvelle police avec statut "payé"
-        if creation and self.statut == 'payé':
-            # Trouver l'exercice correspondant à la date de paiement
-            exercice = Exercice.objects.filter(
-                date_debut__lte=self.date_paiement,
-                date_fin__gte=self.date_paiement,
-                actif=True
-            ).first()
+    #     # Créer automatiquement les points si c'est une nouvelle police avec statut "payé"
+    #     if creation and self.statut == 'payé':
+    #         # Trouver l'exercice correspondant à la date de paiement
+    #         exercice = Exercice.objects.filter(
+    #             date_debut__lte=self.date_paiement,
+    #             date_fin__gte=self.date_paiement,
+    #             actif=True
+    #         ).first()
             
-            if exercice:
-                # Récupérer le pourcentage de points configuré
-                config = Configuration.objects.first()
-                if self.type_assurance == 'vie':
-                    pourcentage = config.pourcentage_points_vie if config else 1.5
-                else:  # 'non_vie'
-                    pourcentage = config.pourcentage_points_non_vie if config else 1.5
+    #         if exercice:
+    #             # Récupérer le pourcentage de points configuré
+    #             config = Configuration.objects.first()
+    #             if self.type_assurance == 'vie':
+    #                 pourcentage = config.pourcentage_points_vie if config else 1.5
+    #             else:  # 'non_vie'
+    #                 pourcentage = config.pourcentage_points_non_vie if config else 1.5
                 
-                # Calculer les points
-                montant_points = self.prime_nette * (Decimal(pourcentage) / Decimal(100))
+    #             # Calculer les points
+    #             montant_points = self.prime_nette * (Decimal(pourcentage) / Decimal(100))
                 
-                # Créer la transaction de points
-                Points.objects.create(
-                    ambassadeur=self.ambassadeur,
-                    police=self,
-                    exercice=exercice,
-                    type_assurance=self.type_assurance,
-                    montant=montant_points,
-                    description=f"Points pour la police {self.numero_police}"
-                )
+    #             # Créer la transaction de points
+    #             Points.objects.create(
+    #                 ambassadeur=self.ambassadeur,
+    #                 police=self,
+    #                 exercice=exercice,
+    #                 type_assurance=self.type_assurance,
+    #                 montant=montant_points,
+    #                 description=f"Points pour la police {self.numero_police}"
+    #             )
     
     class Meta:
         verbose_name = "Police"

@@ -10,6 +10,12 @@
             <div class="text-center mb-8">
                 <h2 class="text-2xl font-bold text-gray-800">Bienvenue sur ACTIVA Ambassadeurs</h2>
                 <p class="text-gray-600 mt-2">Complétez votre profil pour finaliser votre inscription</p>
+                
+                {% if is_google_user %}
+                <div class="mt-4 bg-blue-50 rounded-lg p-3 text-sm text-blue-700">
+                    <i class="fas fa-info-circle mr-1"></i> Vous êtes connecté avec votre compte Google (@group-activa.com)
+                </div>
+                {% endif %}
             </div>
             
             {% if messages %}
@@ -68,6 +74,7 @@
                             Nom <span class="text-red-500">*</span>
                         </label>
                         <input type="text" id="nom" name="nom" required
+                               value="{{ user_nom }}"
                                placeholder="Votre nom de famille" 
                                class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
                     </div>
@@ -77,6 +84,7 @@
                             Prénom <span class="text-red-500">*</span>
                         </label>
                         <input type="text" id="prenom" name="prenom" required
+                               value="{{ user_prenom }}"
                                placeholder="Votre prénom" 
                                class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
                     </div>
@@ -104,7 +112,7 @@
                         Email <span class="text-red-500">*</span>
                     </label>
                     <input type="email" id="email" name="email" required
-                           value="{{ request.user.email }}"
+                           value="{{ user_email }}"
                            class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
                 </div>
                 

@@ -11,7 +11,9 @@ import pandas as pd
 from django.db.models import Q
 
 import io
+import csv
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from ambassadeurs.models import Ambassadeur, Police, Points, Exercice, Configuration
 from rewards.models import Recompense, Echange, CategorieRecompense
@@ -81,8 +83,7 @@ def gestion_ambassadeurs(request):
     """
     Vue pour la gestion des ambassadeurs
     """
-    ambassadeurs = Ambassadeur.objects.all().order_by('nom_complet')  # Changé pour utiliser nom_complet au lieu de code_ambassadeur
-
+    ambassadeurs = Ambassadeur.objects.all().order_by('nom_complet')
     
     # Filtrer par statut si spécifié
     statut = request.GET.get('statut')
@@ -95,8 +96,8 @@ def gestion_ambassadeurs(request):
     recherche = request.GET.get('recherche')
     if recherche:
         ambassadeurs = ambassadeurs.filter(
-            Q(code_ambassadeur_vie__icontains=recherche) |  # Modifié pour utiliser code_ambassadeur_vie
-            Q(code_ambassadeur_non_vie__icontains=recherche) |  # Ajouté pour utiliser code_ambassadeur_non_vie
+            Q(code_ambassadeur_vie__icontains=recherche) |
+            Q(code_ambassadeur_non_vie__icontains=recherche) |
             Q(nom_complet__icontains=recherche)
         )
     
@@ -117,44 +118,626 @@ def gestion_ambassadeurs(request):
 @user_passes_test(is_admin)
 def importer_donnees(request):
     """
-    Vue pour importer des données depuis les fichiers
+    Vue générale pour accéder aux différentes interfaces d'import
     """
+    # Récupérer la configuration pour afficher les pourcentages
+    config, created = Configuration.objects.get_or_create(pk=1)
+    
+    # Récupérer le dernier import
+    last_import = ImportLog.objects.filter(
+        source__in=['ORASS', 'HELIOS'],
+        reussi=True
+    ).order_by('-date_import').first()
+    
+    return render(request, 'backoffice/importer_donnees.html', {
+        'config': config,
+        'last_import': last_import
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def import_polices_vie(request):
+    """
+    Vue pour l'import des polices Vie (HELIOS)
+    """
+    # Récupérer la configuration
+    config, created = Configuration.objects.get_or_create(pk=1)
+    
+    # Récupérer les exercices
+    exercices = Exercice.objects.all().order_by('-date_debut')
+    
+    # Récupérer l'exercice actif par défaut
+    exercice_actif = Exercice.objects.filter(
+        date_debut__lte=timezone.now().date(),
+        date_fin__gte=timezone.now().date(),
+        actif=True
+    ).first() or Exercice.objects.filter(actif=True).order_by('-date_debut').first()
+    
+    # Récupérer le dernier import Vie
+    last_import = ImportLog.objects.filter(
+        source='HELIOS',
+        reussi=True
+    ).order_by('-date_import').first()
+    
     if request.method == 'POST':
-        form = ImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            source = form.cleaned_data['source']
-            fichier = request.FILES['fichier']
-            
-            # Créer un log d'import
-            import_log = ImportLog.objects.create(
-                source=source,
-                fichier=fichier,
-                utilisateur=request.user,
-                reussi=False
+        # Vérifications préliminaires
+        exercice_id = request.POST.get('exercice')
+        fichier = request.FILES.get('fichier')
+        ignorer_existantes = request.POST.get('ignorer_existantes') == 'on'
+        mode_simulation = request.POST.get('mode_simulation') == 'on'
+        
+        if not exercice_id or not fichier:
+            messages.error(request, "Veuillez remplir tous les champs obligatoires.")
+            return render(request, 'backoffice/import_polices_vie.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Récupérer l'exercice
+        try:
+            exercice = Exercice.objects.get(pk=exercice_id)
+        except Exercice.DoesNotExist:
+            messages.error(request, "L'exercice sélectionné n'existe pas.")
+            return render(request, 'backoffice/import_polices_vie.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Vérifier l'extension du fichier
+        if not fichier.name.endswith('.csv'):
+            messages.error(request, "Le fichier doit être au format CSV.")
+            return render(request, 'backoffice/import_polices_vie.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Créer un log d'import
+        import_log = ImportLog.objects.create(
+            source='HELIOS',
+            fichier=fichier,
+            utilisateur=request.user,
+            reussi=False
+        )
+        
+        try:
+            # Traiter le fichier CSV
+            results = traiter_import_polices_bimensuel(
+                fichier, 
+                'HELIOS',  # Source fixée à HELIOS pour les polices Vie
+                exercice, 
+                config, 
+                ignorer_existantes, 
+                mode_simulation
             )
             
+            # Mettre à jour le log d'import
+            import_log.nombre_enregistrements = results['total_traites']
+            import_log.message_erreur = None if results['success'] else results['error_message']
+            import_log.reussi = results['success']
+            import_log.save()
+            
+            if mode_simulation:
+                messages.info(request, f"Simulation terminée. {results['total_traites']} polices analysées. {results['total_importes']} polices seraient importées. {results['total_points']} points seraient attribués.")
+            else:
+                if results['success']:
+                    messages.success(request, f"Import réussi. {results['total_traites']} polices traitées. {results['total_importes']} polices importées. {results['total_points']} points attribués.")
+                else:
+                    messages.error(request, f"Erreur lors de l'import : {results['error_message']}")
+            
+            return render(request, 'backoffice/import_results.html', {
+                'results': results,
+                'import_log': import_log,
+                'mode_simulation': mode_simulation
+            })
+        
+        except Exception as e:
+            # En cas d'erreur
+            import_log.message_erreur = str(e)
+            import_log.save()
+            
+            messages.error(request, f"Erreur lors de l'import : {str(e)}")
+            return render(request, 'backoffice/import_polices_vie.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+    
+    # GET request
+    return render(request, 'backoffice/import_polices_vie.html', {
+        'config': config,
+        'exercices': exercices,
+        'exercice_actif': exercice_actif,
+        'last_import': last_import,
+        'type_assurance': 'vie'
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def import_polices_non_vie(request):
+    """
+    Vue pour l'import des polices Non-Vie (ORASS)
+    """
+    # Récupérer la configuration
+    config, created = Configuration.objects.get_or_create(pk=1)
+    
+    # Récupérer les exercices
+    exercices = Exercice.objects.all().order_by('-date_debut')
+    
+    # Récupérer l'exercice actif par défaut
+    exercice_actif = Exercice.objects.filter(
+        date_debut__lte=timezone.now().date(),
+        date_fin__gte=timezone.now().date(),
+        actif=True
+    ).first() or Exercice.objects.filter(actif=True).order_by('-date_debut').first()
+    
+    # Récupérer le dernier import Non-Vie
+    last_import = ImportLog.objects.filter(
+        source='ORASS',
+        reussi=True
+    ).order_by('-date_import').first()
+    
+    if request.method == 'POST':
+        # Vérifications préliminaires
+        exercice_id = request.POST.get('exercice')
+        fichier = request.FILES.get('fichier')
+        ignorer_existantes = request.POST.get('ignorer_existantes') == 'on'
+        mode_simulation = request.POST.get('mode_simulation') == 'on'
+        
+        if not exercice_id or not fichier:
+            messages.error(request, "Veuillez remplir tous les champs obligatoires.")
+            return render(request, 'backoffice/import_polices_non_vie.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Récupérer l'exercice
+        try:
+            exercice = Exercice.objects.get(pk=exercice_id)
+        except Exercice.DoesNotExist:
+            messages.error(request, "L'exercice sélectionné n'existe pas.")
+            return render(request, 'backoffice/import_polices_non_vie.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Vérifier l'extension du fichier
+        if not fichier.name.endswith('.csv'):
+            messages.error(request, "Le fichier doit être au format CSV.")
+            return render(request, 'backoffice/import_polices_non_vie.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Créer un log d'import
+        import_log = ImportLog.objects.create(
+            source='ORASS',
+            fichier=fichier,
+            utilisateur=request.user,
+            reussi=False
+        )
+        
+        try:
+            # Traiter le fichier CSV
+            results = traiter_import_polices_bimensuel(
+                fichier, 
+                'ORASS',  # Source fixée à ORASS pour les polices Non-Vie
+                exercice, 
+                config, 
+                ignorer_existantes, 
+                mode_simulation
+            )
+            
+            # Mettre à jour le log d'import
+            import_log.nombre_enregistrements = results['total_traites']
+            import_log.message_erreur = None if results['success'] else results['error_message']
+            import_log.reussi = results['success']
+            import_log.save()
+            
+            if mode_simulation:
+                messages.info(request, f"Simulation terminée. {results['total_traites']} polices analysées. {results['total_importes']} polices seraient importées. {results['total_points']} points seraient attribués.")
+            else:
+                if results['success']:
+                    messages.success(request, f"Import réussi. {results['total_traites']} polices traitées. {results['total_importes']} polices importées. {results['total_points']} points attribués.")
+                else:
+                    messages.error(request, f"Erreur lors de l'import : {results['error_message']}")
+            
+            return render(request, 'backoffice/import_results.html', {
+                'results': results,
+                'import_log': import_log,
+                'mode_simulation': mode_simulation
+            })
+        
+        except Exception as e:
+            # En cas d'erreur
+            import_log.message_erreur = str(e)
+            import_log.save()
+            
+            messages.error(request, f"Erreur lors de l'import : {str(e)}")
+            return render(request, 'backoffice/import_polices_non_vie.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+    
+    # GET request
+    return render(request, 'backoffice/import_polices_non_vie.html', {
+        'config': config,
+        'exercices': exercices,
+        'exercice_actif': exercice_actif,
+        'last_import': last_import,
+        'type_assurance': 'non_vie'
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def import_polices(request):
+    """
+    Vue pour l'import des polices et l'attribution des points
+    """
+    # Récupérer la configuration
+    config, created = Configuration.objects.get_or_create(pk=1)
+    
+    # Récupérer les exercices
+    exercices = Exercice.objects.all().order_by('-date_debut')
+    
+    # Récupérer l'exercice actif par défaut
+    exercice_actif = Exercice.objects.filter(
+        date_debut__lte=timezone.now().date(),
+        date_fin__gte=timezone.now().date(),
+        actif=True
+    ).first() or Exercice.objects.filter(actif=True).order_by('-date_debut').first()
+    
+    # Récupérer le dernier import
+    last_import = ImportLog.objects.filter(
+        source__in=['ORASS', 'HELIOS'],
+        reussi=True
+    ).order_by('-date_import').first()
+    
+    if request.method == 'POST':
+        # Vérifications préliminaires
+        source = request.POST.get('source')
+        exercice_id = request.POST.get('exercice')
+        fichier = request.FILES.get('fichier')
+        ignorer_existantes = request.POST.get('ignorer_existantes') == 'on'
+        mode_simulation = request.POST.get('mode_simulation') == 'on'
+        
+        if not source or not exercice_id or not fichier:
+            messages.error(request, "Veuillez remplir tous les champs obligatoires.")
+            return render(request, 'backoffice/import_polices.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Récupérer l'exercice
+        try:
+            exercice = Exercice.objects.get(pk=exercice_id)
+        except Exercice.DoesNotExist:
+            messages.error(request, "L'exercice sélectionné n'existe pas.")
+            return render(request, 'backoffice/import_polices.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Vérifier l'extension du fichier
+        if not fichier.name.endswith('.csv'):
+            messages.error(request, "Le fichier doit être au format CSV.")
+            return render(request, 'backoffice/import_polices.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+        
+        # Créer un log d'import
+        import_log = ImportLog.objects.create(
+            source=source,
+            fichier=fichier,
+            utilisateur=request.user,
+            reussi=False
+        )
+        
+        try:
+            # Traiter le fichier CSV
+            results = traiter_import_polices_bimensuel(
+                fichier, 
+                source, 
+                exercice, 
+                config, 
+                ignorer_existantes, 
+                mode_simulation
+            )
+            
+            # Mettre à jour le log d'import
+            import_log.nombre_enregistrements = results['total_traites']
+            import_log.message_erreur = None if results['success'] else results['error_message']
+            import_log.reussi = results['success']
+            import_log.save()
+            
+            if mode_simulation:
+                messages.info(request, f"Simulation terminée. {results['total_traites']} polices analysées. {results['total_importes']} polices seraient importées. {results['total_points']} points seraient attribués.")
+            else:
+                if results['success']:
+                    messages.success(request, f"Import réussi. {results['total_traites']} polices traitées. {results['total_importes']} polices importées. {results['total_points']} points attribués.")
+                else:
+                    messages.error(request, f"Erreur lors de l'import : {results['error_message']}")
+            
+            return render(request, 'backoffice/import_results.html', {
+                'results': results,
+                'import_log': import_log,
+                'mode_simulation': mode_simulation
+            })
+        
+        except Exception as e:
+            # En cas d'erreur
+            import_log.message_erreur = str(e)
+            import_log.save()
+            
+            messages.error(request, f"Erreur lors de l'import : {str(e)}")
+            return render(request, 'backoffice/import_polices.html', {
+                'config': config,
+                'exercices': exercices,
+                'exercice_actif': exercice_actif,
+                'last_import': last_import
+            })
+    
+    # GET request
+    return render(request, 'backoffice/import_polices.html', {
+        'config': config,
+        'exercices': exercices,
+        'exercice_actif': exercice_actif,
+        'last_import': last_import
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def import_logs(request):
+    """
+    Vue pour afficher l'historique des imports
+    """
+    logs = ImportLog.objects.all().order_by('-date_import')
+    
+    # Pagination
+    paginator = Paginator(logs, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'backoffice/import_logs.html', {
+        'page_obj': page_obj
+    })
+
+def traiter_import_polices_bimensuel(fichier, source, exercice, config, ignorer_existantes=True, mode_simulation=False):
+    """
+    Traite l'import des polices et attribue les points
+    
+    Args:
+        fichier: Le fichier CSV à traiter
+        source: La source du fichier (ORASS ou HELIOS)
+        exercice: L'exercice auquel attribuer les points
+        config: La configuration du système
+        ignorer_existantes: Ignorer les polices déjà existantes
+        mode_simulation: Mode simulation (pas d'import réel)
+        
+    Returns:
+        dict: Résultats de l'import
+    """
+    # Initialiser les compteurs
+    total_traites = 0
+    total_importes = 0
+    total_ignores = 0
+    total_erreurs = 0
+    total_points = 0
+    
+    # Listes pour les détails
+    polices_importees = []
+    polices_ignorees = []
+    polices_erreur = []
+    
+    try:
+        # Lire le fichier CSV
+        df = pd.read_csv(
+            io.StringIO(fichier.read().decode('utf-8')),
+            delimiter=',',  # Ajustez selon le format du fichier
+            dtype={
+                'numero_police': str, 
+                'code_ambassadeur': str,
+                'prime_nette': float,
+                'date_paiement': str,
+                'police': str
+            }
+        )
+        
+        # Vérifier les colonnes requises
+        colonnes_requises = ['numero_police', 'code_ambassadeur', 'prime_nette', 'date_paiement', 'police']
+        for col in colonnes_requises:
+            if col not in df.columns:
+                return {
+                    'success': False,
+                    'error_message': f"Colonne requise manquante dans le fichier : {col}",
+                    'total_traites': 0,
+                    'total_importes': 0,
+                    'total_ignores': 0,
+                    'total_erreurs': 0,
+                    'total_points': 0,
+                    'polices_importees': [],
+                    'polices_ignorees': [],
+                    'polices_erreur': []
+                }
+        
+        # Traiter chaque ligne
+        for _, row in df.iterrows():
+            total_traites += 1
+            
             try:
-                # Traiter le fichier selon la source
-                if source == 'ORASS' or source == 'HELIOS':
-                    traiter_import_polices(fichier, source, import_log)
-                elif source == 'RH':
-                    traiter_import_ambassadeurs(fichier, import_log)
+                # Vérifier si la police existe déjà
+                if ignorer_existantes and Police.objects.filter(numero_police=row['numero_police']).exists():
+                    polices_ignorees.append({
+                        'numero_police': row['numero_police'],
+                        'raison': 'Police déjà existante'
+                    })
+                    total_ignores += 1
+                    continue
                 
-                # Marquer l'import comme réussi
-                import_log.reussi = True
-                import_log.save()
+                # Déterminer le type d'assurance en fonction de la source
+                type_assurance = 'vie' if source == 'HELIOS' else 'non_vie'
                 
-                messages.success(request, f"Import des données {source} réussi.")
-                return redirect('backoffice:import_logs')
+                # Convertir date_paiement en objet date
+                try:
+                    date_paiement = datetime.strptime(row['date_paiement'], '%d/%m/%Y').date()
+                except ValueError:
+                    # Essayer d'autres formats
+                    try:
+                        date_paiement = datetime.strptime(row['date_paiement'], '%Y-%m-%d').date()
+                    except ValueError:
+                        polices_erreur.append({
+                            'numero_police': row['numero_police'],
+                            'raison': f"Format de date invalide : {row['date_paiement']}"
+                        })
+                        total_erreurs += 1
+                        continue
+                
+                # Trouver l'ambassadeur correspondant
+                ambassadeur = None
+                
+                # Rechercher par code en fonction du type d'assurance
+                if type_assurance == 'vie':
+                    try:
+                        ambassadeur = Ambassadeur.objects.get(code_ambassadeur_vie=str(row['code_ambassadeur']))
+                    except Ambassadeur.DoesNotExist:
+                        # Essayer avec les ambassadeurs de type 'les_deux'
+                        try:
+                            ambassadeur = Ambassadeur.objects.get(
+                                code_ambassadeur_vie=str(row['code_ambassadeur']),
+                                type_ambassadeur='les_deux'
+                            )
+                        except Ambassadeur.DoesNotExist:
+                            pass
+                else:  # non_vie
+                    try:
+                        ambassadeur = Ambassadeur.objects.get(code_ambassadeur_non_vie=str(row['code_ambassadeur']))
+                    except Ambassadeur.DoesNotExist:
+                        # Essayer avec les ambassadeurs de type 'les_deux'
+                        try:
+                            ambassadeur = Ambassadeur.objects.get(
+                                code_ambassadeur_non_vie=str(row['code_ambassadeur']),
+                                type_ambassadeur='les_deux'
+                            )
+                        except Ambassadeur.DoesNotExist:
+                            pass
+                
+                if not ambassadeur:
+                    polices_ignorees.append({
+                        'numero_police': row['numero_police'],
+                        'raison': f"Ambassadeur avec code {row['code_ambassadeur']} non trouvé"
+                    })
+                    total_ignores += 1
+                    continue
+                
+                # Calculer les points en fonction du type d'assurance
+                if type_assurance == 'vie':
+                    pourcentage = config.pourcentage_points_vie
+                else:  # non_vie
+                    pourcentage = config.pourcentage_points_non_vie
+                
+                points_a_attribuer = row['prime_nette'] * float(pourcentage) / 100
+                
+                # En mode simulation, juste calculer sans insérer
+                if mode_simulation:
+                    polices_importees.append({
+                        'numero_police': row['numero_police'],
+                        'ambassadeur': ambassadeur.nom_complet,
+                        'prime': row['prime_nette'],
+                        'points': points_a_attribuer,
+                        'type_police': row.get('police', '')
+                    })
+                    total_importes += 1
+                    total_points += points_a_attribuer
+                    continue
+                
+                # Créer la police
+                police = Police.objects.create(
+                    numero_police=row['numero_police'],
+                    ambassadeur=ambassadeur,
+                    type_assurance=type_assurance,
+                    prime_nette=row['prime_nette'],
+                    statut='payé',
+                    source_systeme=source,
+                    date_paiement=date_paiement,
+                    type_police=row.get('police', None)  # Utiliser le nouveau champ pour le type de police
+                )
+                
+                # Créer les points associés
+                points = Points.objects.create(
+                    ambassadeur=ambassadeur,
+                    police=police,
+                    exercice=exercice,
+                    type_assurance=type_assurance,
+                    montant=points_a_attribuer,
+                    description=f"Points pour la police {police.numero_police} - {row.get('police', 'Non spécifié')}"
+                )
+                
+                polices_importees.append({
+                    'numero_police': police.numero_police,
+                    'ambassadeur': ambassadeur.nom_complet,
+                    'prime': police.prime_nette,
+                    'points': points.montant,
+                    'type_police': police.type_police
+                })
+                
+                total_importes += 1
+                total_points += points.montant
             
             except Exception as e:
-                import_log.message_erreur = str(e)
-                import_log.save()
-                messages.error(request, f"Erreur lors de l'import : {str(e)}")
-    else:
-        form = ImportForm()
+                polices_erreur.append({
+                    'numero_police': row.get('numero_police', 'Inconnu'),
+                    'raison': str(e)
+                })
+                total_erreurs += 1
+        
+        # Retourner les résultats
+        return {
+            'success': True,
+            'total_traites': total_traites,
+            'total_importes': total_importes,
+            'total_ignores': total_ignores,
+            'total_erreurs': total_erreurs,
+            'total_points': total_points,
+            'polices_importees': polices_importees,
+            'polices_ignorees': polices_ignorees,
+            'polices_erreur': polices_erreur
+        }
     
-    return render(request, 'backoffice/importer_donnees.html', {'form': form})
+    except Exception as e:
+        return {
+            'success': False,
+            'error_message': str(e),
+            'total_traites': total_traites,
+            'total_importes': total_importes,
+            'total_ignores': total_ignores,
+            'total_erreurs': total_erreurs,
+            'total_points': total_points,
+            'polices_importees': polices_importees,
+            'polices_ignorees': polices_ignorees,
+            'polices_erreur': polices_erreur
+        }
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -371,114 +954,6 @@ def rapport_points(request):
     
     return render(request, 'backoffice/rapport_points.html', context)
 
-# Fonctions utilitaires pour le backoffice
-
-def traiter_import_polices(fichier, source, import_log):
-    """
-    Traite l'import d'un fichier de polices
-    """
-    # Lire le fichier CSV
-    df = pd.read_csv(
-        io.StringIO(fichier.read().decode('utf-8')),
-        delimiter=';',  # Adapté selon le format du fichier
-        dtype={'numero_police': str, 'code_ambassadeur': str}
-    )
-    
-    # Vérifier les colonnes requises
-    colonnes_requises = ['numero_police', 'code_ambassadeur', 'prime_nette', 'date_paiement']
-    for col in colonnes_requises:
-        if col not in df.columns:
-            raise ValueError(f"Colonne requise manquante dans le fichier : {col}")
-    
-    # Convertir les colonnes de date
-    df['date_paiement'] = pd.to_datetime(df['date_paiement'], format='%d/%m/%Y')
-    
-    # Compter les lignes
-    import_log.nombre_enregistrements = len(df)
-    import_log.save()
-    
-    # Importer chaque ligne
-    for _, row in df.iterrows():
-        try:
-            # Vérifier si la police existe déjà
-            if Police.objects.filter(numero_police=row['numero_police']).exists():
-                continue
-            
-            # Vérifier si l'ambassadeur existe
-            try:
-                ambassadeur = Ambassadeur.objects.get(code_ambassadeur=row['code_ambassadeur'])
-            except Ambassadeur.DoesNotExist:
-                # Ignorer cette police
-                continue
-            
-            # Créer la police
-            Police.objects.create(
-                numero_police=row['numero_police'],
-                ambassadeur=ambassadeur,
-                prime_nette=row['prime_nette'],
-                statut='payé',
-                source_systeme=source,
-                date_paiement=row['date_paiement']
-            )
-        except Exception as e:
-            # Continuer malgré les erreurs
-            continue
-
-def traiter_import_ambassadeurs(fichier, import_log):
-    """
-    Traite l'import d'un fichier d'ambassadeurs
-    """
-    # Lire le fichier CSV
-    df = pd.read_csv(
-        io.StringIO(fichier.read().decode('utf-8')),
-        delimiter=';',  # Adapté selon le format du fichier
-        dtype={'code_ambassadeur': str}
-    )
-    
-    # Vérifier les colonnes requises
-    colonnes_requises = ['code_ambassadeur', 'nom_complet', 'email', 'identifiant_ad']
-    for col in colonnes_requises:
-        if col not in df.columns:
-            raise ValueError(f"Colonne requise manquante dans le fichier : {col}")
-    
-    # Compter les lignes
-    import_log.nombre_enregistrements = len(df)
-    import_log.save()
-    
-    # Importer chaque ligne
-    for _, row in df.iterrows():
-        try:
-            # Vérifier si l'utilisateur existe
-            from django.contrib.auth.models import User
-            
-            user, created = User.objects.get_or_create(
-                username=row['identifiant_ad'],
-                defaults={
-                    'email': row['email'],
-                    'is_active': True
-                }
-            )
-            
-            # Mettre à jour ou créer l'ambassadeur
-            ambassadeur, created = Ambassadeur.objects.get_or_create(
-                code_ambassadeur=row['code_ambassadeur'],
-                defaults={
-                    'user': user,
-                    'nom_complet': row['nom_complet'],
-                    'email': row['email'],
-                    'actif': True
-                }
-            )
-            
-            if not created:
-                # Mettre à jour les informations
-                ambassadeur.nom_complet = row['nom_complet']
-                ambassadeur.email = row['email']
-                ambassadeur.save()
-        except Exception as e:
-            # Continuer malgré les erreurs
-            continue
-
 def exporter_rapport_points_csv(points_par_ambassadeur, points_utilises, exercice):
     """
     Exporte le rapport de points au format CSV
@@ -488,7 +963,6 @@ def exporter_rapport_points_csv(points_par_ambassadeur, points_utilises, exercic
     response['Content-Disposition'] = f'attachment; filename="rapport_points_{exercice.nom}.csv"'
     
     # Créer le writer CSV
-    import csv
     writer = csv.writer(response, delimiter=';')
     
     # Écrire l'en-tête
@@ -720,3 +1194,4 @@ def detail_ambassadeur(request, ambassadeur_id):
     }
     
     return render(request, 'backoffice/detail_ambassadeur.html', context)
+            

@@ -49,7 +49,44 @@ INSTALLED_APPS = [
     'ambassadeurs',
     'rewards',
     'backoffice',
+
+    # Ajout pour l'authentification sociale
+    'social_django',
 ]
+
+# Ajoutez ces configurations pour django-allauth
+AUTHENTICATION_BACKENDS = [
+    # Nécessaire pour permettre l'authentification par défaut de Django
+    'django.contrib.auth.backends.ModelBackend',
+    
+    # Authentification avec Python Social Auth
+    'social_core.backends.google.GoogleOAuth2'
+]
+
+# Configuration pour Google OAuth
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_CLIENT_ID')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = ['group-activa.com']  # Restreint aux emails de votre domaine
+
+# Paramètres de redirection
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/dashboard/'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = '/auth/association-code/'
+
+# Pipeline pour l'intégration personnalisée
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -60,6 +97,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'authentication.middleware.AmbassadeurCheckMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
 ROOT_URLCONF = 'activa_ambassadeurs.urls'
@@ -151,3 +189,7 @@ LOGOUT_REDIRECT_URL = '/auth/login/'
 # LDAP_DOMAIN = 'example.com'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Clés d'API Google OAuth (remplacer par vos identifiants réels)
+GOOGLE_CLIENT_ID="votre_client_id"
+GOOGLE_CLIENT_SECRET="votre_client_secret"

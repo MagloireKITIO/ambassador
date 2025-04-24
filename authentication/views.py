@@ -1,136 +1,26 @@
-# # authentication/views.py
-
-# from django.shortcuts import render, redirect
-# from django.contrib.auth import authenticate, login, logout
-# from django.contrib.auth.decorators import login_required
-# from django.contrib import messages
-# from django.utils import timezone
-# from .forms import CustomAuthenticationForm, PasswordResetRequestForm
-# from .models import LoginLog, UserProfile
-# from ambassadeurs.models import Ambassadeur
-
-# def login_view(request):
-#     """
-#     Vue pour gérer la connexion des utilisateurs
-#     """
-#     # Rediriger l'utilisateur s'il est déjà connecté
-#     if request.user.is_authenticated:
-#         return redirect('dashboard')
-    
-#     if request.method == 'POST':
-#         form = CustomAuthenticationForm(request, data=request.POST)
-        
-#         if form.is_valid():
-#             username = form.cleaned_data.get('username')
-#             password = form.cleaned_data.get('password')
-#             user = authenticate(username=username, password=password)
-            
-#             if user is not None:
-#                 login(request, user)
-                
-#                 # Enregistrer la connexion
-#                 ip_address = request.META.get('REMOTE_ADDR')
-#                 user_agent = request.META.get('HTTP_USER_AGENT')
-                
-#                 # Créer un log de connexion
-#                 LoginLog.objects.create(
-#                     user=user,
-#                     ip_address=ip_address,
-#                     user_agent=user_agent,
-#                     is_successful=True
-#                 )
-                
-#                 # Mettre à jour le profil utilisateur
-#                 profile, created = UserProfile.objects.get_or_create(user=user)
-#                 profile.last_login_ip = ip_address
-#                 profile.save()
-                
-#                 # Vérifier si l'utilisateur est un ambassadeur ou un administrateur
-#                 try:
-#                     ambassadeur = Ambassadeur.objects.get(user=user)
-#                     # Rediriger vers le tableau de bord des ambassadeurs
-#                     return redirect('dashboard')
-#                 except Ambassadeur.DoesNotExist:
-#                     # Vérifier si c'est un administrateur
-#                     if user.is_staff or getattr(profile, 'is_admin', False):
-#                         return redirect('backoffice:dashboard')
-#                     else:
-#                         # Utilisateur non autorisé
-#                         messages.error(request, "Vous n'êtes pas autorisé à accéder à cette application.")
-#                         logout(request)
-#                         return redirect('login')
-#             else:
-#                 # Créer un log d'échec de connexion
-#                 LoginLog.objects.create(
-#                     user=user,
-#                     ip_address=request.META.get('REMOTE_ADDR'),
-#                     user_agent=request.META.get('HTTP_USER_AGENT'),
-#                     is_successful=False
-#                 )
-                
-#                 messages.error(request, "Identifiant ou mot de passe invalide.")
-#     else:
-#         form = CustomAuthenticationForm()
-    
-#     return render(request, 'authentication/login.html', {'form': form})
-
-# def logout_view(request):
-#     """
-#     Vue pour gérer la déconnexion des utilisateurs
-#     """
-#     logout(request)
-#     messages.success(request, "Vous avez été déconnecté avec succès.")
-#     return redirect('login')
-
-# def password_reset_request(request):
-#     """
-#     Vue pour gérer les demandes de réinitialisation de mot de passe
-#     """
-#     if request.method == 'POST':
-#         form = PasswordResetRequestForm(request.POST)
-#         if form.is_valid():
-#             email = form.cleaned_data.get('email')
-#             # Ici, vous implémenteriez la logique pour envoyer un e-mail de réinitialisation
-#             # Pour le moment, on affiche simplement un message de succès
-#             messages.success(request, "Un e-mail a été envoyé à l'adresse fournie avec les instructions pour réinitialiser votre mot de passe.")
-#             return redirect('login')
-#     else:
-#         form = PasswordResetRequestForm()
-    
-#     return render(request, 'authentication/password_reset_request.html', {'form': form})
-
-# @login_required
-# def profile_view(request):
-#     """
-#     Vue pour afficher et modifier le profil de l'utilisateur
-#     """
-#     try:
-#         ambassadeur = Ambassadeur.objects.get(user=request.user)
-#         return render(request, 'authentication/profile.html', {'ambassadeur': ambassadeur})
-#     except Ambassadeur.DoesNotExist:
-#         messages.error(request, "Vous n'êtes pas enregistré comme ambassadeur.")
-#         return redirect('login')
-
-
-# authentication/views.py (version simplifiée)
+# authentication/views.py
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
+from social_django.models import UserSocialAuth
 from .forms import CustomAuthenticationForm
 from ambassadeurs.models import Ambassadeur
 
 def login_view(request):
     """
-    Vue simplifiée pour la connexion
+    Vue pour gérer la connexion des utilisateurs
+    Note: La connexion Google est gérée directement par social-auth-app-django
     """
+    # Si l'utilisateur est déjà connecté, rediriger vers le tableau de bord
     if request.user.is_authenticated:
         return redirect('dashboard')
     
     if request.method == 'POST':
         form = CustomAuthenticationForm(request, data=request.POST)
+        
         if form.is_valid():
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
@@ -147,7 +37,7 @@ def login_view(request):
                 if Ambassadeur.objects.filter(user=user).exists():
                     return redirect('dashboard')
                 else:
-                    # Au lieu de déconnecter, rediriger vers l'association de code
+                    # Rediriger vers l'association de code
                     return redirect('association_code')
             else:
                 messages.error(request, "Identifiant ou mot de passe invalide.")
@@ -160,10 +50,14 @@ def login_view(request):
 def association_code(request):
     """
     Vue pour associer un utilisateur à son code ambassadeur
+    Cette vue traite également les utilisateurs connectés via Google
     """
     # Vérifier si l'utilisateur est déjà associé à un ambassadeur
     if Ambassadeur.objects.filter(user=request.user).exists():
         return redirect('dashboard')
+    
+    # Récupérer l'email de l'utilisateur (utile pour les utilisateurs Google)
+    user_email = request.user.email
     
     if request.method == 'POST':
         type_ambassadeur = request.POST.get('type_ambassadeur')
@@ -173,14 +67,61 @@ def association_code(request):
         prenom = request.POST.get('prenom')
         date_naissance = request.POST.get('date_naissance')
         telephone = request.POST.get('telephone')
-        email = request.POST.get('email', request.user.email)
+        email = request.POST.get('email', user_email)
         
         # Vérifications de base
         if not type_ambassadeur or (type_ambassadeur == 'vie' and not code_ambassadeur_vie) or (type_ambassadeur == 'non_vie' and not code_ambassadeur_non_vie) or (type_ambassadeur == 'les_deux' and (not code_ambassadeur_vie or not code_ambassadeur_non_vie)) or not nom or not prenom:
             messages.error(request, "Veuillez remplir tous les champs obligatoires.")
             return render(request, 'authentication/association_code.html', {'type_ambassadeur': type_ambassadeur})
         
-        # Vérifier que les codes n'existent pas déjà
+        # Recherche d'ambassadeurs existants ayant ces codes
+        ambassadeur_existant = None
+        
+        if code_ambassadeur_vie:
+            try:
+                ambassadeur_existant = Ambassadeur.objects.get(code_ambassadeur_vie=code_ambassadeur_vie, user__isnull=True)
+            except Ambassadeur.DoesNotExist:
+                pass
+        
+        if not ambassadeur_existant and code_ambassadeur_non_vie:
+            try:
+                ambassadeur_existant = Ambassadeur.objects.get(code_ambassadeur_non_vie=code_ambassadeur_non_vie, user__isnull=True)
+            except Ambassadeur.DoesNotExist:
+                pass
+        
+        # Si un ambassadeur avec ce code existe sans utilisateur, l'associer
+        if ambassadeur_existant:
+            ambassadeur_existant.user = request.user
+            
+            # Mettre à jour les détails de l'ambassadeur si nécessaire
+            if nom and prenom:
+                ambassadeur_existant.nom_complet = f"{prenom} {nom}"
+            
+            if email:
+                ambassadeur_existant.email = email
+            
+            if telephone:
+                ambassadeur_existant.telephone = telephone
+            
+            if date_naissance:
+                ambassadeur_existant.date_naissance = date_naissance
+            
+            # Mettre à jour le type si nécessaire
+            if type_ambassadeur and type_ambassadeur != ambassadeur_existant.type_ambassadeur:
+                ambassadeur_existant.type_ambassadeur = type_ambassadeur
+                
+                # Mettre à jour les codes si nécessaire
+                if type_ambassadeur == 'vie' or type_ambassadeur == 'les_deux':
+                    ambassadeur_existant.code_ambassadeur_vie = code_ambassadeur_vie
+                
+                if type_ambassadeur == 'non_vie' or type_ambassadeur == 'les_deux':
+                    ambassadeur_existant.code_ambassadeur_non_vie = code_ambassadeur_non_vie
+            
+            ambassadeur_existant.save()
+            messages.success(request, "Votre compte a été associé avec succès. Bienvenue dans le programme Ambassadeurs!")
+            return redirect('dashboard')
+        
+        # Sinon, vérifier que les codes n'existent pas déjà chez un autre utilisateur
         if code_ambassadeur_vie and Ambassadeur.objects.filter(code_ambassadeur_vie=code_ambassadeur_vie).exists():
             messages.error(request, "Ce code ambassadeur Vie est déjà utilisé.")
             return render(request, 'authentication/association_code.html', {'type_ambassadeur': type_ambassadeur})
@@ -211,7 +152,18 @@ def association_code(request):
         except Exception as e:
             messages.error(request, f"Une erreur s'est produite: {str(e)}")
     
-    return render(request, 'authentication/association_code.html')
+    # Vérifier si l'utilisateur s'est connecté via Google
+    is_google_user = UserSocialAuth.objects.filter(user=request.user, provider='google-oauth2').exists()
+    
+    # Préremplir certains champs si l'utilisateur s'est connecté via Google
+    context = {
+        'is_google_user': is_google_user,
+        'user_email': user_email,
+        'user_prenom': request.user.first_name,
+        'user_nom': request.user.last_name,
+    }
+    
+    return render(request, 'authentication/association_code.html', context)
 
 def logout_view(request):
     """
@@ -219,15 +171,4 @@ def logout_view(request):
     """
     logout(request)
     messages.success(request, "Vous avez été déconnecté avec succès.")
-    return redirect('home')  # Rediriger vers la landing page
-
-@login_required
-def profile_view(request):
-    """
-    Vue simplifiée pour le profil
-    """
-    try:
-        ambassadeur = Ambassadeur.objects.get(user=request.user)
-        return render(request, 'authentication/profile.html', {'ambassadeur': ambassadeur})
-    except Ambassadeur.DoesNotExist:
-        return render(request, 'authentication/profile.html')
+    return redirect('home')

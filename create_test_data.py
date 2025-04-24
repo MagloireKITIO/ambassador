@@ -15,18 +15,10 @@ from django.utils import timezone
 from ambassadeurs.models import Ambassadeur, Police, Points, Exercice, Configuration
 from rewards.models import Recompense, Echange, CategorieRecompense
 from authentication.models import UserProfile
+from backoffice.models import ImportLog
 
 def create_test_data():
     print("Création des données de test...")
-    
-    # Nettoyer les données existantes (optionnel, à utiliser avec précaution)
-    # Décommentez ces lignes si vous voulez supprimer les données existantes
-    # User.objects.all().delete()
-    # Exercice.objects.all().delete()
-    # Configuration.objects.all().delete()
-    # CategorieRecompense.objects.all().delete()
-    # Recompense.objects.all().delete()
-    # Ambassadeur.objects.all().delete()
     
     # Créer un exercice actif s'il n'existe pas
     exercice, created = Exercice.objects.get_or_create(
@@ -142,79 +134,49 @@ def create_test_data():
     else:
         print(f"Utilisateur admin existe déjà: {admin_username}")
     
-    # Créer des utilisateurs "AD" simulés
-    ad_users = [
+    # Créer de nouveaux codes ambassadeurs (sans utilisateurs associés)
+    new_ambassadeurs_data = [
         {
-            "username": "tchiat.lazare",
-            "password": "password123",
-            "email": "tchiat.lazare@activa-assurance.com",
-            "first_name": "Lazare",
-            "last_name": "TCHIAT",
-            "code_vie": "10835",
-            "code_non_vie": "1823",
-            "telephone": "699949714",
+            "code_vie": "14530",
+            "code_non_vie": "3214",
+            "nom_complet": "ESSOMBA MOISE",
+            "email": "essomba.moise@group-activa.com",
+            "telephone": "699123456",
             "type": "les_deux"
         },
         {
-            "username": "kopipie.carine",
-            "password": "password123",
-            "email": "kopipie.carine@activa-assurance.com",
-            "first_name": "Carine",
-            "last_name": "KOPIPIE DJINGOU",
-            "code_vie": "12009",
-            "code_non_vie": "2517",
-            "telephone": "699976322",
-            "type": "les_deux"
-        },
-        {
-            "username": "mbime.martin",
-            "password": "password123",
-            "email": "mbime.martin@activa-assurance.com",
-            "first_name": "Martin",
-            "last_name": "MBIME EBWEA",
-            "code_vie": "10833",
-            "code_non_vie": "1866",
-            "telephone": "694395585",
+            "code_vie": "15897",
+            "code_non_vie": None,
+            "nom_complet": "KAMGA ALICE",
+            "email": "kamga.alice@group-activa.com",
+            "telephone": "699987654",
             "type": "vie"
         },
         {
-            "username": "ganapou.bernard",
-            "password": "password123",
-            "email": "ganapou.bernard@activa-assurance.com",
-            "first_name": "Bernard",
-            "last_name": "GANAPOU",
             "code_vie": None,
-            "code_non_vie": "756",
-            "telephone": "696705451",
+            "code_non_vie": "4289",
+            "nom_complet": "TAMO PAUL",
+            "email": "tamo.paul@group-activa.com",
+            "telephone": "699456789",
             "type": "non_vie"
-        }
+        },
+        {
+            "code_vie": "16435",
+            "code_non_vie": "5012",
+            "nom_complet": "FOUDA CLAUDINE",
+            "email": "fouda.claudine@group-activa.com",
+            "telephone": "699789123",
+            "type": "les_deux"
+        },
     ]
     
-    # Créer des utilisateurs "AD" et des codes ambassadeurs (sans association)
-    for user_data in ad_users:
-        username = user_data["username"]
+    # Créer des ambassadeurs sans association utilisateur
+    created_ambassadeurs = []
+    for amb_data in new_ambassadeurs_data:
+        code_vie = amb_data["code_vie"]
+        code_non_vie = amb_data["code_non_vie"]
         
-        # Vérifier si l'utilisateur existe déjà
-        if User.objects.filter(username=username).exists():
-            print(f"Utilisateur {username} existe déjà")
-            user = User.objects.get(username=username)
-        else:
-            # Créer l'utilisateur
-            user = User.objects.create_user(
-                username=username,
-                email=user_data["email"],
-                password=user_data["password"],
-                first_name=user_data["first_name"],
-                last_name=user_data["last_name"]
-            )
-            # Créer le profil
-            UserProfile.objects.create(user=user)
-            print(f"Utilisateur {username} créé")
-        
-        # Vérifier si un ambassadeur existe avec ces codes
-        code_vie = user_data["code_vie"]
-        code_non_vie = user_data["code_non_vie"]
-        
+        # Vérifier si un ambassadeur existe déjà avec ces codes
         ambassadeur_exists = False
         if code_vie:
             ambassadeur_exists = ambassadeur_exists or Ambassadeur.objects.filter(code_ambassadeur_vie=code_vie).exists()
@@ -222,65 +184,208 @@ def create_test_data():
             ambassadeur_exists = ambassadeur_exists or Ambassadeur.objects.filter(code_ambassadeur_non_vie=code_non_vie).exists()
         
         if ambassadeur_exists:
-            print(f"Un ambassadeur avec ces codes existe déjà")
+            print(f"Un ambassadeur avec ces codes existe déjà pour {amb_data['nom_complet']}")
             continue
         
-        # Créer l'ambassadeur sans l'associer à l'utilisateur
-        type_ambassadeur = user_data["type"]
-        nom_complet = f"{user_data['first_name']} {user_data['last_name']}"
-        
+        # Créer l'ambassadeur sans utilisateur associé
         ambassadeur = Ambassadeur.objects.create(
             user=None,  # Pas d'association pour simuler la première connexion
-            type_ambassadeur=type_ambassadeur,
+            type_ambassadeur=amb_data["type"],
             code_ambassadeur_vie=code_vie,
             code_ambassadeur_non_vie=code_non_vie,
-            nom_complet=nom_complet,
-            email=user_data["email"],
-            telephone=user_data["telephone"],
+            nom_complet=amb_data["nom_complet"],
+            email=amb_data["email"],
+            telephone=amb_data["telephone"],
             actif=True
         )
-        
-        print(f"Créé ambassadeur: {nom_complet} - Type: {type_ambassadeur}")
-        
-        # Pour démonstration, associer un des ambassadeurs à son utilisateur
-        if user_data["username"] == "ganapou.bernard":
-            ambassadeur.user = user
-            ambassadeur.save()
-            print(f"Associé {nom_complet} à son utilisateur")
+        created_ambassadeurs.append(ambassadeur)
+        print(f"Créé ambassadeur: {ambassadeur.nom_complet} - Type: {ambassadeur.type_ambassadeur}")
     
-    # Créer des polices pour l'ambassadeur associé
-    try:
-        ambassadeur_associe = Ambassadeur.objects.get(user__username="ganapou.bernard")
-        
-        # Vérifier si des polices existent déjà
-        if Police.objects.filter(ambassadeur=ambassadeur_associe).exists():
-            print(f"Des polices existent déjà pour {ambassadeur_associe.nom_complet}")
-        else:
-            # Polices Non-Vie
-            for i in range(1, 5):
-                date_paiement = timezone.now() - timedelta(days=i*15)
-                prime_nette = random.randint(500, 10000)
-                
-                Police.objects.create(
-                    numero_police=f"NV-2025-{i:03d}",
-                    ambassadeur=ambassadeur_associe,
-                    type_assurance='non_vie',
-                    prime_nette=prime_nette,
-                    statut='payé',
-                    source_systeme='ORASS',
-                    date_paiement=date_paiement
-                )
-                
-            print(f"Créé des polices Non-Vie pour {ambassadeur_associe.nom_complet}")
-    except Ambassadeur.DoesNotExist:
-        print("Aucun ambassadeur associé trouvé")
+    # Créer des utilisateurs pour Google Auth (sans association aux ambassadeurs)
+    google_users_data = [
+        {
+            "username": "essomba.moise",
+            "email": "essomba.moise@group-activa.com",
+            "first_name": "Moise",
+            "last_name": "ESSOMBA",
+            "password": "password123"
+        },
+        {
+            "username": "kamga.alice",
+            "email": "kamga.alice@group-activa.com",
+            "first_name": "Alice",
+            "last_name": "KAMGA",
+            "password": "password123"
+        },
+        {
+            "username": "tamo.paul",
+            "email": "tamo.paul@group-activa.com",
+            "first_name": "Paul",
+            "last_name": "TAMO",
+            "password": "password123"
+        },
+        {
+            "username": "fouda.claudine",
+            "email": "fouda.claudine@group-activa.com",
+            "first_name": "Claudine",
+            "last_name": "FOUDA",
+            "password": "password123"
+        },
+    ]
     
-    print("Données de test créées avec succès!")
-    print("Utilisateurs créés:")
-    print("- Admin: username=admin, password=admin123")
-    for user_data in ad_users:
-        status = "Associé" if user_data["username"] == "ganapou.bernard" else "Non associé"
-        print(f"- Ambassadeur {user_data['first_name']} {user_data['last_name']}: username={user_data['username']}, password={user_data['password']}, statut={status}")
+    created_users = []
+    for user_data in google_users_data:
+        username = user_data["username"]
+        
+        # Vérifier si l'utilisateur existe déjà
+        if User.objects.filter(username=username).exists():
+            print(f"Utilisateur {username} existe déjà")
+            continue
+        
+        # Créer l'utilisateur
+        user = User.objects.create_user(
+            username=username,
+            email=user_data["email"],
+            password=user_data["password"],
+            first_name=user_data["first_name"],
+            last_name=user_data["last_name"]
+        )
+        
+        # Créer le profil utilisateur
+        UserProfile.objects.create(user=user)
+        created_users.append(user)
+        print(f"Utilisateur {username} créé")
+    
+    # Créer quelques données d'exemple pour les imports
+    # Ces données seront utilisées pour démontrer l'import bimensuel
+    if created_ambassadeurs:
+        import_sample_entries = []
+        current_date = timezone.now().date()
+        
+        # Pour chaque ambassadeur créé, générer quelques polices d'exemple
+        for ambassadeur in created_ambassadeurs:
+            if ambassadeur.type_ambassadeur in ['vie', 'les_deux'] and ambassadeur.code_ambassadeur_vie:
+                # Polices Vie
+                for i in range(1, 4):
+                    numero_police = f"VIE-{ambassadeur.code_ambassadeur_vie}-{i:03d}"
+                    date_paiement = current_date - timedelta(days=random.randint(1, 30))
+                    prime_nette = random.randint(100000, 500000)
+                    type_police = random.choice(["Individuel accident", "Épargne", "Retraite", "Capital décès"])
+                    
+                    import_sample_entries.append({
+                        "numero_police": numero_police,
+                        "code_ambassadeur": ambassadeur.code_ambassadeur_vie,
+                        "prime_nette": prime_nette,
+                        "date_paiement": date_paiement.strftime("%d/%m/%Y"),
+                        "police": type_police,
+                        "nom_ambassadeur": ambassadeur.nom_complet,
+                        "type": "vie"
+                    })
+            
+            if ambassadeur.type_ambassadeur in ['non_vie', 'les_deux'] and ambassadeur.code_ambassadeur_non_vie:
+                # Polices Non-Vie
+                for i in range(1, 4):
+                    numero_police = f"NV-{ambassadeur.code_ambassadeur_non_vie}-{i:03d}"
+                    date_paiement = current_date - timedelta(days=random.randint(1, 30))
+                    prime_nette = random.randint(50000, 300000)
+                    type_police = random.choice(["Automobile", "Voyage", "Habitation", "Santé", "Multirisque"])
+                    
+                    import_sample_entries.append({
+                        "numero_police": numero_police,
+                        "code_ambassadeur": ambassadeur.code_ambassadeur_non_vie,
+                        "prime_nette": prime_nette,
+                        "date_paiement": date_paiement.strftime("%d/%m/%Y"),
+                        "police": type_police,
+                        "nom_ambassadeur": ambassadeur.nom_complet,
+                        "type": "non_vie"
+                    })
+        
+        # Afficher un tableau pour l'exemple d'import Vie
+        print("\nEXEMPLE D'IMPORT POLICES VIE (HELIOS):")
+        print("-" * 80)
+        print("{:<20} {:<15} {:<12} {:<12} {:<20} {:<20}".format(
+            "numero_police", "code_ambassadeur", "prime_nette", "date_paiement", "police", "Nom de l'ambassadeur"))
+        print("-" * 80)
+        
+        for entry in [e for e in import_sample_entries if e["type"] == "vie"]:
+            print("{:<20} {:<15} {:<12} {:<12} {:<20} {:<20}".format(
+                entry["numero_police"],
+                entry["code_ambassadeur"],
+                entry["prime_nette"],
+                entry["date_paiement"],
+                entry["police"],
+                entry["nom_ambassadeur"]
+            ))
+        
+        # Afficher un tableau pour l'exemple d'import Non-Vie
+        print("\nEXEMPLE D'IMPORT POLICES NON-VIE (ORASS):")
+        print("-" * 80)
+        print("{:<20} {:<15} {:<12} {:<12} {:<20} {:<20}".format(
+            "numero_police", "code_ambassadeur", "prime_nette", "date_paiement", "police", "Nom de l'ambassadeur"))
+        print("-" * 80)
+        
+        for entry in [e for e in import_sample_entries if e["type"] == "non_vie"]:
+            print("{:<20} {:<15} {:<12} {:<12} {:<20} {:<20}".format(
+                entry["numero_police"],
+                entry["code_ambassadeur"],
+                entry["prime_nette"],
+                entry["date_paiement"],
+                entry["police"],
+                entry["nom_ambassadeur"]
+            ))
+        
+        # Exporter les exemples dans des fichiers CSV
+        try:
+            import csv
+            
+            # Export Vie
+            with open('import_exemple_vie.csv', 'w', newline='') as csvfile:
+                fieldnames = ['numero_police', 'code_ambassadeur', 'prime_nette', 'date_paiement', 'police', 'Nom de l\'ambassadeur']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                
+                writer.writeheader()
+                for entry in [e for e in import_sample_entries if e["type"] == "vie"]:
+                    writer.writerow({
+                        'numero_police': entry["numero_police"],
+                        'code_ambassadeur': entry["code_ambassadeur"],
+                        'prime_nette': entry["prime_nette"],
+                        'date_paiement': entry["date_paiement"],
+                        'police': entry["police"],
+                        'Nom de l\'ambassadeur': entry["nom_ambassadeur"]
+                    })
+            
+            # Export Non-Vie
+            with open('import_exemple_non_vie.csv', 'w', newline='') as csvfile:
+                fieldnames = ['numero_police', 'code_ambassadeur', 'prime_nette', 'date_paiement', 'police', 'Nom de l\'ambassadeur']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                
+                writer.writeheader()
+                for entry in [e for e in import_sample_entries if e["type"] == "non_vie"]:
+                    writer.writerow({
+                        'numero_police': entry["numero_police"],
+                        'code_ambassadeur': entry["code_ambassadeur"],
+                        'prime_nette': entry["prime_nette"],
+                        'date_paiement': entry["date_paiement"],
+                        'police': entry["police"],
+                        'Nom de l\'ambassadeur': entry["nom_ambassadeur"]
+                    })
+            
+            print("\nFichiers CSV créés: import_exemple_vie.csv et import_exemple_non_vie.csv")
+        except Exception as e:
+            print(f"Erreur lors de la création des fichiers CSV: {str(e)}")
+    
+    print("\nDonnées de test créées avec succès!")
+    print("Utilisateurs pour la première connexion:")
+    for user in created_users:
+        print(f"- {user.first_name} {user.last_name}: username={user.username}, email={user.email}, password=password123")
+    
+    print("\nCodes ambassadeurs créés pour test d'association:")
+    for ambassadeur in created_ambassadeurs:
+        print(f"- {ambassadeur.nom_complet}:")
+        if ambassadeur.code_ambassadeur_vie:
+            print(f"  - Code Vie: {ambassadeur.code_ambassadeur_vie}")
+        if ambassadeur.code_ambassadeur_non_vie:
+            print(f"  - Code Non-Vie: {ambassadeur.code_ambassadeur_non_vie}")
 
 if __name__ == "__main__":
     create_test_data()

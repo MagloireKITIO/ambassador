@@ -1,4 +1,4 @@
-# activa_ambassadeurs/urls.py
+# Modification à apporter dans activa_ambassadeurs/urls.py
 
 from django.contrib import admin
 from django.urls import path, include
@@ -10,6 +10,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),  # Admin Django par défaut
     path('', TemplateView.as_view(template_name='landing_page.html'), name='home'),  # Landing page
     path('auth/', include('authentication.urls')),
+    path('social/', include('social_django.urls', namespace='social')),  # URLs pour l'authentification sociale
     path('dashboard/', include('ambassadeurs.urls')),
     path('rewards/', include('rewards.urls')),
     path('backoffice/', include('backoffice.urls')),

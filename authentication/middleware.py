@@ -1,4 +1,5 @@
-# authentication/middleware.py
+# Mise à jour du middleware dans authentication/middleware.py
+
 from django.shortcuts import redirect
 from django.urls import resolve, reverse
 from django.contrib import messages
@@ -16,16 +17,21 @@ class AmbassadeurCheckMiddleware:
                 # Les admins n'ont pas besoin d'avoir un profil ambassadeur
                 pass
             else:
-                # Vérifier si l'URL actuelle n'est pas déjà la page d'association ou de déconnexion
+                # Vérifier si l'URL actuelle n'est pas déjà la page d'association ou liée à l'authentification
                 try:
                     current_url = resolve(request.path_info).url_name
+                    current_namespace = resolve(request.path_info).namespace
+                    
+                    # Liste des URLs à exclure de la redirection
                     excluded_urls = ['association_code', 'logout', 'login']
                     
-                    if current_url not in excluded_urls:
+                    # Si l'URL fait partie de l'authentification sociale, on l'exclut également
+                    if current_namespace == 'social' or current_url in excluded_urls:
+                        pass
+                    else:
                         # Vérifier si l'utilisateur a un profil ambassadeur
                         if not Ambassadeur.objects.filter(user=request.user).exists():
-                            # Ajout d'un message pour le débogage
-                            print(f"Redirection de l'utilisateur {request.user.username} vers la page d'association")
+                            # Redirection vers la page d'association
                             return redirect('association_code')
                 except Exception as e:
                     # En cas d'erreur, loggez-la pour déboguer

@@ -1,0 +1,121 @@
+<!-- backoffice/templates/backoffice/importer_donnees.html -->
+{% extends 'base.html' %}
+
+{% block title %}Importation de données | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Importation de données{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Introduction -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
+        <h2 class="text-lg font-medium text-gray-900 mb-2">Importation de données</h2>
+        <p class="text-gray-600 mb-4">
+            Cette section vous permet d'importer des données dans le système ACTIVA Ambassadeurs.
+            Sélectionnez le type d'importation que vous souhaitez effectuer.
+        </p>
+    </div>
+    
+    <!-- Types d'imports -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Import des polices Vie (HELIOS) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+            <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                <h3 class="text-lg font-medium text-blue-900">Import des polices Vie (HELIOS)</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">
+                    Importez des polices depuis HELIOS (Vie) et attribuez automatiquement 
+                    des points aux ambassadeurs concernés selon le pourcentage configuré ({{ config.pourcentage_points_vie }}%).
+                </p>
+                <div class="mt-4 bg-blue-50 p-4 rounded-md border border-blue-100 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-medium text-blue-800">Fonctionnement</h4>
+                            <div class="mt-2 text-sm text-blue-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>Identifie les ambassadeurs par leur code Vie</li>
+                                    <li>Calcule les points à {{ config.pourcentage_points_vie }}% de la prime nette</li>
+                                    <li>Les polices déjà importées sont ignorées</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <a href="{% url 'backoffice:import_polices_vie' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-file-import mr-2"></i> Importer des polices Vie
+                </a>
+            </div>
+        </div>
+        
+        <!-- Import des polices Non-Vie (ORASS) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                <h3 class="text-lg font-medium text-green-900">Import des polices Non-Vie (ORASS)</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">
+                    Importez des polices depuis ORASS (Non-Vie) et attribuez automatiquement 
+                    des points aux ambassadeurs concernés selon le pourcentage configuré ({{ config.pourcentage_points_non_vie }}%).
+                </p>
+                <div class="mt-4 bg-green-50 p-4 rounded-md border border-green-100 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-green-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-medium text-green-800">Fonctionnement</h4>
+                            <div class="mt-2 text-sm text-green-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>Identifie les ambassadeurs par leur code Non-Vie</li>
+                                    <li>Calcule les points à {{ config.pourcentage_points_non_vie }}% de la prime nette</li>
+                                    <li>Les polices déjà importées sont ignorées</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <a href="{% url 'backoffice:import_polices_non_vie' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <i class="fas fa-file-import mr-2"></i> Importer des polices Non-Vie
+                </a>
+            </div>
+        </div>
+        
+        <!-- Historique des imports -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900">Historique des imports</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">
+                    Consultez l'historique de tous les imports effectués dans le système et vérifiez leur statut.
+                </p>
+                <div class="mt-4 bg-yellow-50 p-4 rounded-md border border-yellow-100 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-history text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-medium text-yellow-800">Informations disponibles</h4>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>Date et heure de l'import</li>
+                                    <li>Utilisateur ayant effectué l'import</li>
+                                    <li>Nombre d'enregistrements traités</li>
+                                    <li>Statut de l'opération</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <a href="{% url 'backoffice:import_logs' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                    <i class="fas fa-history mr-2"></i> Voir l'historique
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

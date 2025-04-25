@@ -10,6 +10,11 @@ from django.core.paginator import Paginator
 import pandas as pd
 from django.db.models import Q
 
+import logging
+import sys
+import io
+import traceback
+
 import io
 import csv
 from datetime import datetime, timedelta
@@ -519,7 +524,7 @@ def import_logs(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    return render(request, 'backoffice/import_logs.html', {
+    return render(request, 'backoffice/import_results.html', {
         'page_obj': page_obj
     })
 
@@ -552,36 +557,119 @@ def traiter_import_polices_bimensuel(fichier, source, exercice, config, ignorer_
     
     try:
         # Lire le fichier CSV
-        df = pd.read_csv(
-            io.StringIO(fichier.read().decode('utf-8')),
-            delimiter=',',  # Ajustez selon le format du fichier
-            dtype={
-                'numero_police': str, 
-                'code_ambassadeur': str,
-                'prime_nette': float,
-                'date_paiement': str,
-                'police': str
+        import io
+        import pandas as pd
+        
+        # Lecture du fichier
+        # Si le fichier est un InMemoryUploadedFile (ce qui est le cas lors d'un upload via formulaire)
+        # nous devons nous assurer que le curseur est au début du fichier
+        fichier.seek(0)
+        
+        # Lire le contenu du fichier
+        fichier_content = fichier.read()
+        
+        # Si le fichier est vide, retourner une erreur
+        if not fichier_content:
+            return {
+                'success': False,
+                'error_message': "Le fichier est vide",
+                'total_traites': 0,
+                'total_importes': 0,
+                'total_ignores': 0,
+                'total_erreurs': 0,
+                'total_points': 0,
+                'polices_importees': [],
+                'polices_ignorees': [],
+                'polices_erreur': []
             }
-        )
+        
+        # Convertir le contenu en string si c'est un binaire
+        if isinstance(fichier_content, bytes):
+            try:
+                fichier_str = fichier_content.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    # Essayer d'autres encodages si UTF-8 échoue
+                    fichier_str = fichier_content.decode('latin1')
+                except UnicodeDecodeError:
+                    fichier_str = fichier_content.decode('cp1252', errors='replace')
+        else:
+            fichier_str = fichier_content
+        
+        # Essayer différents délimiteurs (virgule, point-virgule, tabulation)
+        delimiters = [',', ';', '\t']
+        df = None
+        
+        for delimiter in delimiters:
+            try:
+                # Créer un StringIO pour pandas
+                string_io = io.StringIO(fichier_str)
+                
+                # Lire le CSV avec le délimiteur
+                df = pd.read_csv(
+                    string_io,
+                    delimiter=delimiter,
+                    dtype={
+                        'numero_police': str, 
+                        'code_ambassadeur': str,
+                        'prime_nette': float,
+                        'date_paiement': str,
+                        'police': str
+                    }
+                )
+                
+                # Vérifier si le DataFrame est valide
+                if len(df.columns) >= 5:  # Au moins 5 colonnes
+                    break
+            except Exception:
+                continue
+        
+        # Si aucun délimiteur n'a fonctionné
+        if df is None:
+            return {
+                'success': False,
+                'error_message': "Format de fichier CSV invalide. Vérifiez le délimiteur.",
+                'total_traites': 0,
+                'total_importes': 0,
+                'total_ignores': 0,
+                'total_erreurs': 0,
+                'total_points': 0,
+                'polices_importees': [],
+                'polices_ignorees': [],
+                'polices_erreur': []
+            }
         
         # Vérifier les colonnes requises
         colonnes_requises = ['numero_police', 'code_ambassadeur', 'prime_nette', 'date_paiement', 'police']
-        for col in colonnes_requises:
-            if col not in df.columns:
-                return {
-                    'success': False,
-                    'error_message': f"Colonne requise manquante dans le fichier : {col}",
-                    'total_traites': 0,
-                    'total_importes': 0,
-                    'total_ignores': 0,
-                    'total_erreurs': 0,
-                    'total_points': 0,
-                    'polices_importees': [],
-                    'polices_ignorees': [],
-                    'polices_erreur': []
-                }
         
-        # Traiter chaque ligne
+        # Normaliser les noms de colonnes (suppression d'espaces, minuscules)
+        column_mapping = {}
+        for col in df.columns:
+            normalized = col.strip().lower().replace(' ', '_')
+            column_mapping[col] = normalized
+        
+        df.rename(columns=column_mapping, inplace=True)
+        
+        # Vérifier si toutes les colonnes requises sont présentes
+        colonnes_manquantes = [col for col in colonnes_requises if col not in df.columns]
+        if colonnes_manquantes:
+            return {
+                'success': False,
+                'error_message': f"Colonnes requises manquantes dans le fichier : {', '.join(colonnes_manquantes)}",
+                'total_traites': 0,
+                'total_importes': 0,
+                'total_ignores': 0,
+                'total_erreurs': 0,
+                'total_points': 0,
+                'polices_importees': [],
+                'polices_ignorees': [],
+                'polices_erreur': []
+            }
+        
+        # Déterminer le type d'assurance en fonction de la source
+        type_assurance = 'vie' if source == 'HELIOS' else 'non_vie'
+        
+        # Parcourir chaque ligne du DataFrame
         for _, row in df.iterrows():
             total_traites += 1
             
@@ -595,23 +683,29 @@ def traiter_import_polices_bimensuel(fichier, source, exercice, config, ignorer_
                     total_ignores += 1
                     continue
                 
-                # Déterminer le type d'assurance en fonction de la source
-                type_assurance = 'vie' if source == 'HELIOS' else 'non_vie'
-                
                 # Convertir date_paiement en objet date
+                from datetime import datetime
                 try:
-                    date_paiement = datetime.strptime(row['date_paiement'], '%d/%m/%Y').date()
+                    # Essayer différents formats de date
+                    formats_date = ['%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y']
+                    date_paiement = None
+                    
+                    for format_date in formats_date:
+                        try:
+                            date_paiement = datetime.strptime(str(row['date_paiement']), format_date).date()
+                            break
+                        except ValueError:
+                            continue
+                            
+                    if date_paiement is None:
+                        raise ValueError(f"Format de date invalide : {row['date_paiement']}")
                 except ValueError:
-                    # Essayer d'autres formats
-                    try:
-                        date_paiement = datetime.strptime(row['date_paiement'], '%Y-%m-%d').date()
-                    except ValueError:
-                        polices_erreur.append({
-                            'numero_police': row['numero_police'],
-                            'raison': f"Format de date invalide : {row['date_paiement']}"
-                        })
-                        total_erreurs += 1
-                        continue
+                    polices_erreur.append({
+                        'numero_police': row['numero_police'],
+                        'raison': f"Format de date invalide : {row['date_paiement']}"
+                    })
+                    total_erreurs += 1
+                    continue
                 
                 # Trouver l'ambassadeur correspondant
                 ambassadeur = None
@@ -651,24 +745,27 @@ def traiter_import_polices_bimensuel(fichier, source, exercice, config, ignorer_
                     continue
                 
                 # Calculer les points en fonction du type d'assurance
+                from decimal import Decimal
+                
                 if type_assurance == 'vie':
                     pourcentage = config.pourcentage_points_vie
                 else:  # non_vie
                     pourcentage = config.pourcentage_points_non_vie
                 
-                points_a_attribuer = row['prime_nette'] * float(pourcentage) / 100
+                prime_nette = Decimal(str(row['prime_nette']))
+                points_a_attribuer = prime_nette * Decimal(pourcentage) / Decimal(100)
                 
                 # En mode simulation, juste calculer sans insérer
                 if mode_simulation:
                     polices_importees.append({
                         'numero_police': row['numero_police'],
                         'ambassadeur': ambassadeur.nom_complet,
-                        'prime': row['prime_nette'],
-                        'points': points_a_attribuer,
+                        'prime': float(prime_nette),
+                        'points': float(points_a_attribuer),
                         'type_police': row.get('police', '')
                     })
                     total_importes += 1
-                    total_points += points_a_attribuer
+                    total_points += float(points_a_attribuer)
                     continue
                 
                 # Créer la police
@@ -676,7 +773,7 @@ def traiter_import_polices_bimensuel(fichier, source, exercice, config, ignorer_
                     numero_police=row['numero_police'],
                     ambassadeur=ambassadeur,
                     type_assurance=type_assurance,
-                    prime_nette=row['prime_nette'],
+                    prime_nette=prime_nette,
                     statut='payé',
                     source_systeme=source,
                     date_paiement=date_paiement,
@@ -696,17 +793,17 @@ def traiter_import_polices_bimensuel(fichier, source, exercice, config, ignorer_
                 polices_importees.append({
                     'numero_police': police.numero_police,
                     'ambassadeur': ambassadeur.nom_complet,
-                    'prime': police.prime_nette,
-                    'points': points.montant,
+                    'prime': float(police.prime_nette),
+                    'points': float(points.montant),
                     'type_police': police.type_police
                 })
                 
                 total_importes += 1
-                total_points += points.montant
+                total_points += float(points.montant)
             
             except Exception as e:
                 polices_erreur.append({
-                    'numero_police': row.get('numero_police', 'Inconnu'),
+                    'numero_police': str(row.get('numero_police', 'Inconnu')),
                     'raison': str(e)
                 })
                 total_erreurs += 1
@@ -725,9 +822,10 @@ def traiter_import_polices_bimensuel(fichier, source, exercice, config, ignorer_
         }
     
     except Exception as e:
+        import traceback
         return {
             'success': False,
-            'error_message': str(e),
+            'error_message': f"Erreur lors du traitement du fichier: {str(e)}\n{traceback.format_exc()}",
             'total_traites': total_traites,
             'total_importes': total_importes,
             'total_ignores': total_ignores,
@@ -737,7 +835,6 @@ def traiter_import_polices_bimensuel(fichier, source, exercice, config, ignorer_
             'polices_ignorees': polices_ignorees,
             'polices_erreur': polices_erreur
         }
-
 
 @login_required
 @user_passes_test(is_admin)

@@ -225,7 +225,84 @@
             </footer>
         </div>
     </div>
-    
+    <script>
+        // Gestionnaire d'upload de fichiers
+        document.addEventListener('DOMContentLoaded', function() {
+            // Recherche tous les champs d'upload de fichiers
+            const fileInputs = document.querySelectorAll('input[type="file"]');
+            
+            fileInputs.forEach(fileInput => {
+                // Vérifie si l'entrée de fichier est contenue dans une zone de drop
+                const dropArea = fileInput.closest('.border-dashed');
+                if (!dropArea) return;
+                
+                // Crée un élément pour afficher le nom du fichier sélectionné
+                const fileInfoId = `${fileInput.id}-info`;
+                let fileInfo = document.getElementById(fileInfoId);
+                
+                // S'il n'existe pas déjà, créons-le
+                if (!fileInfo) {
+                    fileInfo = document.createElement('div');
+                    fileInfo.id = fileInfoId;
+                    fileInfo.className = 'mt-2 text-sm text-blue-600 hidden';
+                    dropArea.parentNode.insertBefore(fileInfo, dropArea.nextSibling);
+                }
+                
+                // Empêcher le comportement par défaut pour les événements de drag & drop
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                // Ajout de classes lors du survol
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, highlight, false);
+                });
+                
+                // Retrait des classes après le survol
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    dropArea.classList.add('bg-gray-50', 'border-blue-300');
+                }
+                
+                function unhighlight() {
+                    dropArea.classList.remove('bg-gray-50', 'border-blue-300');
+                }
+                
+                // Gestion du drop
+                dropArea.addEventListener('drop', handleDrop, false);
+                
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    fileInput.files = files;
+                    updateFileInfo();
+                }
+                
+                // Mise à jour de l'information sur le fichier sélectionné
+                fileInput.addEventListener('change', updateFileInfo);
+                
+                function updateFileInfo() {
+                    if (fileInput.files && fileInput.files[0]) {
+                        const fileName = fileInput.files[0].name;
+                        fileInfo.textContent = `Fichier sélectionné : ${fileName}`;
+                        fileInfo.classList.remove('hidden');
+                        dropArea.classList.add('border-green-300', 'bg-green-50');
+                    } else {
+                        fileInfo.classList.add('hidden');
+                        dropArea.classList.remove('border-green-300', 'bg-green-50');
+                    }
+                }
+            });
+        });
+        </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

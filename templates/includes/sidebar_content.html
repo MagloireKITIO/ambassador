@@ -92,7 +92,7 @@
             COMPTE
         </div>
     </div>
-    <a href=" " class="sidebar-link flex items-center px-4 py-3 {% if 'profile' in request.path %}active{% endif %}">
+    <a href="{% url 'backoffice:profil_admin' %}"  class="sidebar-link flex items-center px-4 py-3 {% if 'profile' in request.path %}active{% endif %}">
         <i class="fas fa-user-circle w-5"></i>
         <span class="ml-3">Mon profil</span>
     </a>

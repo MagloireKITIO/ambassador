@@ -1,0 +1,183 @@
+<!-- backoffice/templates/backoffice/envoyer_notification.html -->
+{% extends 'base.html' %}
+
+{% block title %}Envoyer une notification | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Envoyer une notification pour l'échange #{{ echange.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Bouton retour -->
+    <div class="mb-6">
+        <a href="{% url 'backoffice:detail_echange' echange.id %}" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+            <i class="fas fa-arrow-left mr-2"></i> Retour au détail de l'échange
+        </a>
+    </div>
+    
+    <!-- Informations sur l'échange -->
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div class="flex items-center mb-4 md:mb-0">
+                <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                    {% if echange.recompense.image %}
+                        <img src="{{ echange.recompense.image.url }}" alt="{{ echange.recompense.nom }}" class="h-full w-full object-cover">
+                    {% else %}
+                        <div class="flex items-center justify-center h-full w-full bg-gray-100 text-gray-400">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900">{{ echange.recompense.nom }}</h4>
+                    <p class="text-sm text-gray-500">
+                        <span class="font-medium">Ambassadeur:</span> {{ echange.ambassadeur.nom_complet }}
+                    </p>
+                </div>
+            </div>
+            <div>
+                {% if echange.statut == 'en_attente' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-clock mr-1"></i> En attente
+                    </span>
+                {% elif echange.statut == 'confirme' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <i class="fas fa-check mr-1"></i> Confirmé
+                    </span>
+                {% elif echange.statut == 'expedie' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <i class="fas fa-shipping-fast mr-1"></i> Expédié
+                    </span>
+                {% elif echange.statut == 'livre' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-box-open mr-1"></i> Livré
+                    </span>
+                {% elif echange.statut == 'annule' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <i class="fas fa-times mr-1"></i> Annulé
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Formulaire de notification -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+            <h3 class="text-lg font-medium text-blue-900">Envoyer une notification</h3>
+            <p class="mt-1 text-sm text-blue-700">
+                Cette notification sera visible par l'ambassadeur dans son espace personnel.
+                {% if echange.ambassadeur.user %}
+                    {% if echange.ambassadeur.email %}
+                        Un email sera également envoyé à {{ echange.ambassadeur.email }}.
+                    {% endif %}
+                {% else %}
+                    <span class="font-medium text-yellow-600">
+                        Attention : Cet ambassadeur n'a pas encore de compte utilisateur associé.
+                    </span>
+                {% endif %}
+            </p>
+        </div>
+        
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label for="titre" class="block text-sm font-medium text-gray-700 mb-1">
+                    Titre <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="titre" name="titre" required value="Mise à jour de votre commande #{{ echange.id }}"
+                       class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+            </div>
+            
+            <div>
+                <label for="message" class="block text-sm font-medium text-gray-700 mb-1">
+                    Message <span class="text-red-500">*</span>
+                </label>
+                <textarea id="message" name="message" rows="5" required
+                          class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
+            </div>
+            
+            <div>
+                <label for="niveau" class="block text-sm font-medium text-gray-700 mb-1">
+                    Niveau d'importance
+                </label>
+                <select id="niveau" name="niveau" 
+                        class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    <option value="info">Information</option>
+                    <option value="success">Succès</option>
+                    <option value="warning">Avertissement</option>
+                    <option value="error">Erreur</option>
+                </select>
+            </div>
+            
+            <!-- Modèles prédéfinis -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Modèles prédéfinis
+                </label>
+                <div class="space-y-2">
+                    <button type="button" onclick="setTemplate('confirmation')" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500">
+                        Confirmation
+                    </button>
+                    <button type="button" onclick="setTemplate('expedition')" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500">
+                        Expédition
+                    </button>
+                    <button type="button" onclick="setTemplate('livraison')" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500">
+                        Livraison
+                    </button>
+                    <button type="button" onclick="setTemplate('retard')" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500">
+                        Retard
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="pt-4 flex justify-end space-x-3 border-t border-gray-200">
+                <a href="{% url 'backoffice:detail_echange' echange.id %}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Annuler
+                </a>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-paper-plane mr-2"></i> Envoyer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function setTemplate(type) {
+        const messageField = document.getElementById('message');
+        const niveauField = document.getElementById('niveau');
+        const titreField = document.getElementById('titre');
+        
+        // Récupérer le nom de la récompense
+        const recompenseName = "{{ echange.recompense.nom }}";
+        
+        // Définir les différents modèles
+        switch(type) {
+            case 'confirmation':
+                titreField.value = "Confirmation de votre commande #{{ echange.id }}";
+                messageField.value = `Cher ambassadeur,\n\nNous avons le plaisir de vous informer que votre demande d'échange pour "${recompenseName}" a été confirmée.\n\nVotre récompense est en cours de préparation et vous recevrez une notification lors de son expédition.\n\nMerci pour votre fidélité!`;
+                niveauField.value = "success";
+                break;
+            case 'expedition':
+                titreField.value = "Expédition de votre commande #{{ echange.id }}";
+                messageField.value = `Cher ambassadeur,\n\nVotre récompense "${recompenseName}" a été expédiée!\n\nVous la recevrez dans les prochains jours.\n\nMerci pour votre fidélité!`;
+                niveauField.value = "info";
+                break;
+            case 'livraison':
+                titreField.value = "Livraison de votre commande #{{ echange.id }}";
+                messageField.value = `Cher ambassadeur,\n\nNous espérons que vous avez bien reçu votre récompense "${recompenseName}".\n\nN'hésitez pas à nous contacter si vous avez des questions.\n\nMerci pour votre fidélité!`;
+                niveauField.value = "success";
+                break;
+            case 'retard':
+                titreField.value = "Retard sur votre commande #{{ echange.id }}";
+                messageField.value = `Cher ambassadeur,\n\nNous sommes désolés de vous informer que votre récompense "${recompenseName}" subit un léger retard dans son traitement.\n\nNous mettons tout en œuvre pour vous la faire parvenir au plus vite.\n\nMerci pour votre compréhension et votre fidélité.`;
+                niveauField.value = "warning";
+                break;
+        }
+    }
+</script>
+{% endblock %}

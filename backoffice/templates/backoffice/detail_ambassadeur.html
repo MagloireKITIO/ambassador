@@ -1,0 +1,446 @@
+<!-- backoffice/templates/backoffice/detail_ambassadeur.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ ambassadeur.nom_complet }} | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Détails de l'ambassadeur{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Bouton retour -->
+    <div class="mb-6">
+        <a href="{% url 'backoffice:gestion_ambassadeurs' %}" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+            <i class="fas fa-arrow-left mr-2"></i> Retour à la liste des ambassadeurs
+        </a>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Informations principales -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">Informations</h3>
+                    <a href="{% url 'backoffice:modifier_ambassadeur' ambassadeur.id %}" class="text-blue-600 hover:text-blue-900">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Photo/Avatar -->
+                    <div class="flex items-center justify-center mb-6">
+                        <div class="h-24 w-24 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+                            {{ ambassadeur.nom_complet|slice:":2"|upper }}
+                        </div>
+                    </div>
+                    
+                    <!-- Informations de base -->
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900">{{ ambassadeur.nom_complet }}</h4>
+                            <p class="text-gray-500">
+                                {% if ambassadeur.actif %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i> Actif
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-times-circle mr-1"></i> Inactif
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-500">Type d'ambassadeur</p>
+                            <p class="font-medium">
+                                {% if ambassadeur.type_ambassadeur == 'vie' %}
+                                    Ambassadeur Vie
+                                {% elif ambassadeur.type_ambassadeur == 'non_vie' %}
+                                    Ambassadeur Non-Vie
+                                {% else %}
+                                    Ambassadeur Vie et Non-Vie
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        {% if ambassadeur.type_ambassadeur == 'vie' or ambassadeur.type_ambassadeur == 'les_deux' %}
+                            <div>
+                                <p class="text-sm text-gray-500">Code ambassadeur Vie</p>
+                                <p class="font-medium">{{ ambassadeur.code_ambassadeur_vie }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if ambassadeur.type_ambassadeur == 'non_vie' or ambassadeur.type_ambassadeur == 'les_deux' %}
+                            <div>
+                                <p class="text-sm text-gray-500">Code ambassadeur Non-Vie</p>
+                                <p class="font-medium">{{ ambassadeur.code_ambassadeur_non_vie }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        <div>
+                            <p class="text-sm text-gray-500">Email</p>
+                            <p class="font-medium">{{ ambassadeur.email }}</p>
+                        </div>
+                        
+                        {% if ambassadeur.telephone %}
+                            <div>
+                                <p class="text-sm text-gray-500">Téléphone</p>
+                                <p class="font-medium">{{ ambassadeur.telephone }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if ambassadeur.date_naissance %}
+                            <div>
+                                <p class="text-sm text-gray-500">Date de naissance</p>
+                                <p class="font-medium">{{ ambassadeur.date_naissance|date:"d/m/Y" }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        <div>
+                            <p class="text-sm text-gray-500">Date d'inscription</p>
+                            <p class="font-medium">{{ ambassadeur.date_creation|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Compte utilisateur -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="text-sm font-medium text-gray-700 mb-3">Compte utilisateur</h4>
+                        
+                        {% if ambassadeur.user %}
+                            <div class="mb-4">
+                                <p class="text-sm text-gray-500">Utilisateur associé</p>
+                                <p class="font-medium">{{ ambassadeur.user.username }}</p>
+                                <p class="text-xs text-gray-500">Dernière connexion: {{ ambassadeur.user.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</p>
+                            </div>
+                            
+                            <!-- Bouton pour dissocier l'utilisateur -->
+                            <form method="post" action="{% url 'backoffice:dissocier_ambassadeur' ambassadeur.id %}" onsubmit="return confirm('Êtes-vous sûr de vouloir dissocier cet utilisateur ? L\'ambassadeur ne pourra plus se connecter à la plateforme.');">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                    <i class="fas fa-unlink mr-2"></i> Dissocier l'utilisateur
+                                </button>
+                            </form>
+                        {% else %}
+                            <div class="bg-yellow-50 p-3 rounded-md border border-yellow-200 mb-4">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-yellow-700">
+                                            Cet ambassadeur n'a pas encore de compte utilisateur associé.
+                                            Il ne peut pas se connecter à la plateforme.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Option pour créer un utilisateur manuellement -->
+                            <p class="text-sm text-gray-600 mb-3">
+                                L'ambassadeur pourra créer son compte lors de sa première connexion.
+                                Son code ambassadeur sera alors automatiquement associé.
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistiques et activité -->
+        <div class="lg:col-span-2">
+            <!-- Statistiques -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-medium text-gray-900">Statistiques</h3>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Points -->
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                            <p class="text-sm text-blue-700">Points totaux</p>
+                            <p class="text-2xl font-bold text-blue-800">
+                                {{ points_vie|add:points_non_vie|floatformat:2 }}
+                            </p>
+                            <div class="flex justify-between text-xs text-blue-600 mt-2">
+                                <span>Vie: {{ points_vie|floatformat:2 }}</span>
+                                <span>Non-Vie: {{ points_non_vie|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Polices -->
+                        <div class="bg-green-50 rounded-lg p-4 border border-green-100">
+                            <p class="text-sm text-green-700">Polices vendues</p>
+                            <p class="text-2xl font-bold text-green-800">
+                                {{ polices_vie|add:polices_non_vie }}
+                            </p>
+                            <div class="flex justify-between text-xs text-green-600 mt-2">
+                                <span>Vie: {{ polices_vie }}</span>
+                                <span>Non-Vie: {{ polices_non_vie }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Échanges -->
+                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                            <p class="text-sm text-purple-700">Échanges réalisés</p>
+                            <p class="text-2xl font-bold text-purple-800">
+                                {{ echanges|length }}
+                            </p>
+                            <div class="text-xs text-purple-600 mt-2">
+                                <span>Dernier: {{ echanges.0.date_creation|date:"d/m/Y"|default:"Aucun" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Exercice actif -->
+                    {% if exercice_actif %}
+                        <div class="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <p class="text-sm text-gray-500">Exercice actif: <span class="font-medium">{{ exercice_actif.nom }}</span></p>
+                            <p class="text-sm text-gray-500">
+                                Points disponibles: <span class="font-medium text-blue-600">{{ ambassadeur.get_solde_points|floatformat:2 }}</span>
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Onglets d'activité -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-6 px-6">
+                        <button id="tab-polices" class="tab-btn border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                            Polices
+                        </button>
+                        <button id="tab-points" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                            Points
+                        </button>
+                        <button id="tab-echanges" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                            Échanges
+                        </button>
+                    </nav>
+                </div>
+                
+                <!-- Contenu Polices -->
+                <div id="content-polices" class="tab-content p-6">
+                    {% if polices %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Police</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Prime</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for police in polices %}
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                {{ police.numero_police }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {{ police.date_paiement|date:"d/m/Y" }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {% if police.type_assurance == 'vie' %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        Vie
+                                                    </span>
+                                                {% else %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        Non-Vie
+                                                    </span>
+                                                {% endif %}
+                                                {% if police.type_police %}
+                                                    <span class="text-xs ml-2">{{ police.type_police }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                                {{ police.prime_nette|floatformat:2 }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 text-right">
+                                                {% for point in police.points.all %}
+                                                    {{ point.montant|floatformat:2 }}
+                                                {% endfor %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-4 text-center">
+                            <a href="#" class="text-sm text-blue-600 hover:text-blue-800">
+                                Voir plus de polices
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-gray-500">
+                            <p>Aucune police n'a été enregistrée pour cet ambassadeur.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Contenu Points -->
+                <div id="content-points" class="tab-content p-6 hidden">
+                    {% if points %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Police</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Expiration</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for point in points %}
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {{ point.date_creation|date:"d/m/Y" }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {% if point.police %}
+                                                    {{ point.police.numero_police }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-gray-500">
+                                                {{ point.description }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 text-right">
+                                                {{ point.montant|floatformat:2 }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                                {% if point.date_expiration %}
+                                                    {{ point.date_expiration|date:"d/m/Y" }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-4 text-center">
+                            <a href="#" class="text-sm text-blue-600 hover:text-blue-800">
+                                Voir plus de points
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-gray-500">
+                            <p>Aucun point n'a été enregistré pour cet ambassadeur.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Contenu Échanges -->
+                <div id="content-echanges" class="tab-content p-6 hidden">
+                    {% if echanges %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Récompense</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for echange in echanges %}
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {{ echange.date_creation|date:"d/m/Y" }}
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">
+                                                {{ echange.recompense.nom }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 text-right">
+                                                {{ echange.points_utilises|floatformat:2 }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                                {% if echange.statut == 'en_attente' %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                        En attente
+                                                    </span>
+                                                {% elif echange.statut == 'confirme' %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        Confirmé
+                                                    </span>
+                                                {% elif echange.statut == 'expedie' %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                        Expédié
+                                                    </span>
+                                                {% elif echange.statut == 'livre' %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        Livré
+                                                    </span>
+                                                {% elif echange.statut == 'annule' %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                        Annulé
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-4 text-center">
+                            <a href="#" class="text-sm text-blue-600 hover:text-blue-800">
+                                Voir plus d'échanges
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-gray-500">
+                            <p>Aucun échange n'a été effectué par cet ambassadeur.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestion des onglets
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Réinitialiser tous les boutons
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('border-blue-500', 'text-blue-600');
+                    btn.classList.add('border-transparent', 'text-gray-500');
+                });
+                
+                // Activer le bouton cliqué
+                button.classList.remove('border-transparent', 'text-gray-500');
+                button.classList.add('border-blue-500', 'text-blue-600');
+                
+                // Masquer tous les contenus
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // Afficher le contenu correspondant
+                const contentId = 'content-' + button.id.split('-')[1];
+                document.getElementById(contentId).classList.remove('hidden');
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,84 @@
+<!-- backoffice/templates/backoffice/modifier_profil.html -->
+{% extends 'base.html' %}
+
+{% block title %}Modifier mon profil | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Modifier mon profil{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Bouton retour -->
+    <div class="mb-6">
+        <a href="{% url 'backoffice:profil_admin' %}" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+            <i class="fas fa-arrow-left mr-2"></i> Retour à mon profil
+        </a>
+    </div>
+    
+    <!-- Formulaire -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-medium text-gray-900">Modifier mon profil</h3>
+            <p class="mt-1 text-sm text-gray-500">
+                Mettez à jour vos informations personnelles.
+            </p>
+        </div>
+        
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                <!-- Prénom -->
+                <div>
+                    <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">
+                        Prénom <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="first_name" name="first_name" required
+                           value="{{ user.first_name }}"
+                           class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                </div>
+                
+                <!-- Nom -->
+                <div>
+                    <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">
+                        Nom <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="last_name" name="last_name" required
+                           value="{{ user.last_name }}"
+                           class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                </div>
+                
+                <!-- Email -->
+                <div class="sm:col-span-2">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                        Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" id="email" name="email" required
+                           value="{{ user.email }}"
+                           class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                </div>
+                
+                <!-- Nom d'utilisateur (en lecture seule) -->
+                <div class="sm:col-span-2">
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+                        Nom d'utilisateur
+                    </label>
+                    <input type="text" id="username" 
+                           value="{{ user.username }}"
+                           class="bg-gray-50 shadow-sm block w-full sm:text-sm border-gray-300 rounded-md" readonly>
+                    <p class="mt-1 text-xs text-gray-500">Le nom d'utilisateur ne peut pas être modifié.</p>
+                </div>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="pt-4 flex justify-end space-x-3 border-t border-gray-200">
+                <a href="{% url 'backoffice:profil_admin' %}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Annuler
+                </a>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-save mr-2"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

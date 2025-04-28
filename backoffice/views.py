@@ -1291,4 +1291,589 @@ def detail_ambassadeur(request, ambassadeur_id):
     }
     
     return render(request, 'backoffice/detail_ambassadeur.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def ajouter_recompense(request):
+    """
+    Vue pour ajouter une nouvelle récompense
+    """
+    if request.method == 'POST':
+        form = RecompenseForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "La récompense a été ajoutée avec succès.")
+            return redirect('backoffice:gestion_recompenses')
+    else:
+        form = RecompenseForm()
+    
+    return render(request, 'backoffice/form_recompense.html', {
+        'form': form
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def modifier_recompense(request, recompense_id):
+    """
+    Vue pour modifier une récompense existante
+    """
+    recompense = get_object_or_404(Recompense, pk=recompense_id)
+    
+    if request.method == 'POST':
+        form = RecompenseForm(request.POST, request.FILES, instance=recompense)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"La récompense '{recompense.nom}' a été mise à jour avec succès.")
+            return redirect('backoffice:gestion_recompenses')
+    else:
+        form = RecompenseForm(instance=recompense)
+    
+    return render(request, 'backoffice/form_recompense.html', {
+        'form': form,
+        'recompense': recompense
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def activer_recompense(request, recompense_id):
+    """
+    Vue pour activer une récompense
+    """
+    if request.method == 'POST':
+        recompense = get_object_or_404(Recompense, pk=recompense_id)
+        recompense.actif = True
+        recompense.save()
+        messages.success(request, f"La récompense '{recompense.nom}' a été activée.")
+    
+    return redirect('backoffice:gestion_recompenses')
+
+@login_required
+@user_passes_test(is_admin)
+def desactiver_recompense(request, recompense_id):
+    """
+    Vue pour désactiver une récompense
+    """
+    if request.method == 'POST':
+        recompense = get_object_or_404(Recompense, pk=recompense_id)
+        recompense.actif = False
+        recompense.save()
+        messages.success(request, f"La récompense '{recompense.nom}' a été désactivée.")
+    
+    return redirect('backoffice:gestion_recompenses')
+
+@login_required
+@user_passes_test(is_admin)
+def exporter_echanges(request):
+    """
+    Vue pour exporter les échanges au format CSV
+    """
+    # Récupérer les filtres
+    statut = request.GET.get('statut')
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    ambassadeur_id = request.GET.get('ambassadeur')
+    
+    # Requête de base
+    echanges = Echange.objects.all().order_by('-date_creation')
+    
+    # Appliquer les filtres
+    if statut and statut != 'tous':
+        echanges = echanges.filter(statut=statut)
+    
+    if date_debut:
+        echanges = echanges.filter(date_creation__gte=date_debut)
+    
+    if date_fin:
+        echanges = echanges.filter(date_creation__lte=date_fin)
+    
+    if ambassadeur_id:
+        echanges = echanges.filter(ambassadeur_id=ambassadeur_id)
+    
+    # Créer la réponse CSV
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="exports_echanges.csv"'
+    
+    # Générer le CSV
+    writer = csv.writer(response)
+    writer.writerow(['ID', 'Date', 'Ambassadeur', 'Récompense', 'Points', 'Statut', 'Date de modification'])
+    
+    # Statuts mappés pour lisibilité
+    status_map = dict(Echange.STATUS_CHOICES)
+    
+    for echange in echanges:
+        writer.writerow([
+            echange.id,
+            echange.date_creation.strftime('%d/%m/%Y %H:%M'),
+            echange.ambassadeur.nom_complet,
+            echange.recompense.nom,
+            float(echange.points_utilises),
+            status_map.get(echange.statut, echange.statut),
+            echange.date_modification.strftime('%d/%m/%Y %H:%M')
+        ])
+    
+    return response
+
+@login_required
+@user_passes_test(is_admin)
+def detail_echange(request, echange_id):
+    """
+    Vue pour afficher les détails d'un échange
+    """
+    echange = get_object_or_404(Echange, pk=echange_id)
+    
+    return render(request, 'backoffice/detail_echange.html', {
+        'echange': echange
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def expedier_echange(request, echange_id):
+    """
+    Vue pour marquer un échange comme expédié
+    """
+    if request.method == 'POST':
+        echange = get_object_or_404(Echange, pk=echange_id)
+        
+        if echange.statut == 'confirme':
+            echange.statut = 'expedie'
+            echange.save()
+            messages.success(request, f"L'échange #{echange_id} a été marqué comme expédié.")
+        else:
+            messages.error(request, "Cet échange ne peut pas être marqué comme expédié dans son état actuel.")
+    
+    return redirect('backoffice:gestion_echanges')
+
+@login_required
+@user_passes_test(is_admin)
+def livrer_echange(request, echange_id):
+    """
+    Vue pour marquer un échange comme livré
+    """
+    if request.method == 'POST':
+        echange = get_object_or_404(Echange, pk=echange_id)
+        
+        if echange.statut == 'expedie':
+            echange.statut = 'livre'
+            echange.save()
+            messages.success(request, f"L'échange #{echange_id} a été marqué comme livré.")
+        else:
+            messages.error(request, "Cet échange ne peut pas être marqué comme livré dans son état actuel.")
+    
+    return redirect('backoffice:gestion_echanges')
+
+@login_required
+@user_passes_test(is_admin)
+def annuler_echange(request, echange_id):
+    """
+    Vue pour annuler un échange
+    """
+    if request.method == 'POST':
+        echange = get_object_or_404(Echange, pk=echange_id)
+        
+        if echange.statut not in ['livre', 'annule']:
+            echange.statut = 'annule'
+            echange.save()
+            messages.success(request, f"L'échange #{echange_id} a été annulé.")
+        else:
+            messages.error(request, "Cet échange ne peut pas être annulé dans son état actuel.")
+    
+    return redirect('backoffice:gestion_echanges')
+
+@login_required
+@user_passes_test(is_admin)
+def ajouter_commentaire(request, echange_id):
+    """
+    Vue pour ajouter un commentaire à un échange
+    """
+    echange = get_object_or_404(Echange, pk=echange_id)
+    
+    if request.method == 'POST':
+        commentaire = request.POST.get('commentaire')
+        if commentaire:
+            echange.commentaire = commentaire
+            echange.save()
+            messages.success(request, "Le commentaire a été ajouté avec succès.")
+            return redirect('backoffice:detail_echange', echange_id=echange_id)
+    
+    return render(request, 'backoffice/ajouter_commentaire.html', {
+        'echange': echange
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def envoyer_notification(request, echange_id):
+    """
+    Vue pour envoyer une notification à l'ambassadeur concernant son échange
+    """
+    echange = get_object_or_404(Echange, pk=echange_id)
+    
+    if request.method == 'POST':
+        message = request.POST.get('message')
+        if message:
+            # Créer la notification
+            Notification.objects.create(
+                titre=f"Mise à jour de votre échange #{echange_id}",
+                message=message,
+                niveau='info',
+                destinataire=echange.ambassadeur.user if echange.ambassadeur.user else None,
+                pour_tous=False
+            )
+            messages.success(request, "La notification a été envoyée avec succès.")
+            return redirect('backoffice:detail_echange', echange_id=echange_id)
+    
+    return render(request, 'backoffice/envoyer_notification.html', {
+        'echange': echange
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def gestion_categories(request):
+    """
+    Vue pour la gestion des catégories de récompenses
+    """
+    categories = CategorieRecompense.objects.all().order_by('ordre')
+    
+    if request.method == 'POST':
+        # Traitement du formulaire d'ajout/modification
+        categorie_id = request.POST.get('categorie_id')
+        nom = request.POST.get('nom')
+        description = request.POST.get('description')
+        ordre = request.POST.get('ordre')
+        
+        if categorie_id:
+            # Modification
+            categorie = get_object_or_404(CategorieRecompense, pk=categorie_id)
+            categorie.nom = nom
+            categorie.description = description
+            categorie.ordre = ordre
+            categorie.save()
+            messages.success(request, f"La catégorie '{nom}' a été mise à jour.")
+        else:
+            # Création
+            CategorieRecompense.objects.create(
+                nom=nom,
+                description=description,
+                ordre=ordre
+            )
+            messages.success(request, f"La catégorie '{nom}' a été créée.")
+        
+        return redirect('backoffice:gestion_categories')
+    
+    return render(request, 'backoffice/gestion_categories.html', {
+        'categories': categories
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def ajouter_exercice(request):
+    """
+    Vue pour ajouter un nouvel exercice
+    """
+    if request.method == 'POST':
+        form = ExerciceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "L'exercice a été créé avec succès.")
+            return redirect('backoffice:gestion_exercices')
+    else:
+        form = ExerciceForm()
+    
+    return render(request, 'backoffice/form_exercice.html', {
+        'form': form
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def modifier_exercice(request, exercice_id):
+    """
+    Vue pour modifier un exercice existant
+    """
+    exercice = get_object_or_404(Exercice, pk=exercice_id)
+    
+    if request.method == 'POST':
+        form = ExerciceForm(request.POST, instance=exercice)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"L'exercice '{exercice.nom}' a été mis à jour avec succès.")
+            return redirect('backoffice:gestion_exercices')
+    else:
+        form = ExerciceForm(instance=exercice)
+    
+    return render(request, 'backoffice/form_exercice.html', {
+        'form': form,
+        'exercice': exercice
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def activer_exercice(request, exercice_id):
+    """
+    Vue pour activer un exercice
+    """
+    if request.method == 'POST':
+        exercice = get_object_or_404(Exercice, pk=exercice_id)
+        exercice.actif = True
+        exercice.save()
+        messages.success(request, f"L'exercice '{exercice.nom}' a été activé.")
+    
+    return redirect('backoffice:gestion_exercices')
+
+@login_required
+@user_passes_test(is_admin)
+def desactiver_exercice(request, exercice_id):
+    """
+    Vue pour désactiver un exercice
+    """
+    if request.method == 'POST':
+        exercice = get_object_or_404(Exercice, pk=exercice_id)
+        exercice.actif = False
+        exercice.save()
+        messages.success(request, f"L'exercice '{exercice.nom}' a été désactivé.")
+    
+    return redirect('backoffice:gestion_exercices')
+
+@login_required
+@user_passes_test(is_admin)
+def profil_admin(request):
+    """
+    Vue pour afficher le profil de l'administrateur connecté
+    """
+    user = request.user
+    
+    # Statistiques de connexion
+    from django.utils import timezone
+    from datetime import timedelta
+    from authentication.models import LoginLog
+    
+    # Nombre total de connexions
+    login_count = LoginLog.objects.filter(user=user).count()
+    
+    # Connexions de la semaine
+    week_ago = timezone.now() - timedelta(days=7)
+    login_week_count = LoginLog.objects.filter(user=user, login_time__gte=week_ago).count()
+    
+    # Comptage des notifications
+    notifications_count = Notification.objects.filter(destinataire=user).count()
+    month_ago = timezone.now() - timedelta(days=30)
+    notifications_month_count = Notification.objects.filter(destinataire=user, date_creation__gte=month_ago).count()
+    
+    # Simuler un historique d'actions (à remplacer par un modèle réel si nécessaire)
+    logs = []
+    for import_log in ImportLog.objects.filter(utilisateur=user).order_by('-date_import')[:5]:
+        logs.append({
+            'action': f"Import de données depuis {import_log.source}",
+            'date': import_log.date_import,
+            'type': 'Import'
+        })
+    
+    context = {
+        'user': user,
+        'login_count': login_count,
+        'login_week_count': login_week_count,
+        'notifications_count': notifications_count,
+        'notifications_month_count': notifications_month_count,
+        'logs': logs
+    }
+    
+    return render(request, 'backoffice/profil_admin.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def modifier_profil(request):
+    """
+    Vue pour modifier le profil de l'administrateur connecté
+    """
+    user = request.user
+    
+    if request.method == 'POST':
+        # Utiliser des champs individuels au lieu d'un formulaire complexe
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        
+        if first_name and last_name and email:
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            user.save()
             
+            messages.success(request, "Votre profil a été mis à jour avec succès.")
+            return redirect('backoffice:profil_admin')
+        else:
+            messages.error(request, "Veuillez remplir tous les champs obligatoires.")
+    
+    return render(request, 'backoffice/modifier_profil.html', {'user': user})
+
+@login_required
+@user_passes_test(is_admin)
+def changer_mot_de_passe(request):
+    """
+    Vue pour changer le mot de passe de l'administrateur connecté
+    """
+    if request.method == 'POST':
+        old_password = request.POST.get('old_password')
+        new_password1 = request.POST.get('new_password1')
+        new_password2 = request.POST.get('new_password2')
+        
+        if not request.user.check_password(old_password):
+            messages.error(request, "Votre ancien mot de passe est incorrect.")
+        elif new_password1 != new_password2:
+            messages.error(request, "Les nouveaux mots de passe ne correspondent pas.")
+        elif len(new_password1) < 8:
+            messages.error(request, "Le nouveau mot de passe doit contenir au moins 8 caractères.")
+        else:
+            request.user.set_password(new_password1)
+            request.user.save()
+            
+            # Mettre à jour la session pour éviter la déconnexion
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, request.user)
+            
+            messages.success(request, "Votre mot de passe a été modifié avec succès.")
+            return redirect('backoffice:profil_admin')
+    
+    return render(request, 'backoffice/changer_mot_de_passe.html')
+
+@login_required
+@user_passes_test(is_admin)
+def gestion_admins(request):
+    """
+    Vue pour la gestion des administrateurs
+    """
+    # Récupérer tous les administrateurs
+    from django.contrib.auth.models import User
+    admins = User.objects.filter(is_staff=True).order_by('username')
+    
+    return render(request, 'backoffice/gestion_admins.html', {
+        'admins': admins
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def ajouter_admin(request):
+    """
+    Vue pour ajouter un nouvel administrateur
+    """
+    if request.method == 'POST':
+        from django.contrib.auth.models import User
+        
+        # Récupérer les données du formulaire
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        is_staff = request.POST.get('is_staff') == 'on'
+        is_superuser = request.POST.get('is_superuser') == 'on'
+        
+        # Validation basique
+        errors = []
+        if not username or not email or not password1 or not password2:
+            errors.append("Tous les champs obligatoires doivent être remplis.")
+        if password1 != password2:
+            errors.append("Les mots de passe ne correspondent pas.")
+        if User.objects.filter(username=username).exists():
+            errors.append("Ce nom d'utilisateur est déjà utilisé.")
+        if User.objects.filter(email=email).exists():
+            errors.append("Cette adresse email est déjà utilisée.")
+        
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+        else:
+            # Créer le nouvel utilisateur administrateur
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password1,
+                first_name=first_name,
+                last_name=last_name
+            )
+            
+            user.is_staff = is_staff
+            user.is_superuser = is_superuser
+            user.save()
+            
+            # Créer également un UserProfile pour cet administrateur
+            from authentication.models import UserProfile
+            UserProfile.objects.create(user=user, is_admin=True)
+            
+            messages.success(request, f"L'administrateur {username} a été créé avec succès.")
+            return redirect('backoffice:gestion_admins')
+    
+    return render(request, 'backoffice/ajouter_admin.html')
+
+@login_required
+@user_passes_test(is_admin)
+def modifier_admin(request, admin_id):
+    """
+    Vue pour modifier un administrateur existant
+    """
+    from django.contrib.auth.models import User
+    admin = get_object_or_404(User, pk=admin_id, is_staff=True)
+    
+    if request.method == 'POST':
+        # Récupérer les données du formulaire
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        is_staff = request.POST.get('is_staff') == 'on'
+        is_superuser = request.POST.get('is_superuser') == 'on'
+        
+        # Vérifier si l'email existe déjà (mais pas pour cet utilisateur)
+        if User.objects.filter(email=email).exclude(pk=admin_id).exists():
+            messages.error(request, "Cette adresse email est déjà utilisée par un autre utilisateur.")
+        else:
+            # Mettre à jour l'utilisateur
+            admin.email = email
+            admin.first_name = first_name
+            admin.last_name = last_name
+            admin.is_staff = is_staff
+            admin.is_superuser = is_superuser
+            admin.save()
+            
+            messages.success(request, f"L'administrateur {admin.username} a été mis à jour avec succès.")
+            return redirect('backoffice:gestion_admins')
+    
+    return render(request, 'backoffice/modifier_admin.html', {'admin': admin})
+
+@login_required
+@user_passes_test(is_admin)
+def activer_admin(request, admin_id):
+    """
+    Vue pour activer un administrateur
+    """
+    if request.method == 'POST':
+        from django.contrib.auth.models import User
+        admin = get_object_or_404(User, pk=admin_id, is_staff=True)
+        
+        # Vérifier qu'on n'essaie pas de désactiver son propre compte
+        if admin.id == request.user.id:
+            messages.error(request, "Vous ne pouvez pas modifier le statut de votre propre compte.")
+        else:
+            admin.is_active = True
+            admin.save()
+            messages.success(request, f"L'administrateur {admin.username} a été activé avec succès.")
+    
+    return redirect('backoffice:gestion_admins')
+
+@login_required
+@user_passes_test(is_admin)
+def desactiver_admin(request, admin_id):
+    """
+    Vue pour désactiver un administrateur
+    """
+    if request.method == 'POST':
+        from django.contrib.auth.models import User
+        admin = get_object_or_404(User, pk=admin_id, is_staff=True)
+        
+        # Vérifier qu'on n'essaie pas de désactiver son propre compte
+        if admin.id == request.user.id:
+            messages.error(request, "Vous ne pouvez pas modifier le statut de votre propre compte.")
+        else:
+            admin.is_active = False
+            admin.save()
+            messages.success(request, f"L'administrateur {admin.username} a été désactivé avec succès.")
+    
+    return redirect('backoffice:gestion_admins')

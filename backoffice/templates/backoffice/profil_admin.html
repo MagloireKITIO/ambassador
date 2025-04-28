@@ -1,0 +1,150 @@
+<!-- backoffice/templates/backoffice/profil_admin.html -->
+{% extends 'base.html' %}
+
+{% block title %}Mon profil administrateur | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Mon profil administrateur{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Informations principales -->
+        <div class="md:col-span-1">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">Profil</h3>
+                    <a href="{% url 'backoffice:modifier_profil' %}" class="text-blue-600 hover:text-blue-900">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Photo/Avatar -->
+                    <div class="flex items-center justify-center mb-6">
+                        <div class="h-24 w-24 rounded-full bg-purple-600 flex items-center justify-center text-white text-2xl font-bold">
+                            {{ user.get_full_name|default:user.username|slice:":2"|upper }}
+                        </div>
+                    </div>
+                    
+                    <!-- Informations de base -->
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900">{{ user.get_full_name|default:user.username }}</h4>
+                            <p class="text-gray-500">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    <i class="fas fa-user-shield mr-1"></i> Administrateur
+                                </span>
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-500">Nom d'utilisateur</p>
+                            <p class="font-medium">{{ user.username }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-500">Email</p>
+                            <p class="font-medium">{{ user.email }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-500">Dernière connexion</p>
+                            <p class="font-medium">{{ user.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-500">Date de création du compte</p>
+                            <p class="font-medium">{{ user.date_joined|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Modifier le mot de passe -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <a href="{% url 'backoffice:changer_mot_de_passe' %}" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-key mr-2"></i> Changer mon mot de passe
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistiques et activité -->
+        <div class="md:col-span-2">
+            <!-- Statistiques d'activité -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-medium text-gray-900">Statistiques d'activité</h3>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Importations -->
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                            <p class="text-sm text-blue-700">Importations</p>
+                            <p class="text-2xl font-bold text-blue-800">
+                                {{ user.imports.count }}
+                            </p>
+                            <div class="text-xs text-blue-600 mt-2">
+                                <span>Dernière: {{ user.imports.last.date_import|date:"d/m/Y"|default:"Aucune" }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Échanges traités -->
+                        <div class="bg-green-50 rounded-lg p-4 border border-green-100">
+                            <p class="text-sm text-green-700">Connexions</p>
+                            <p class="text-2xl font-bold text-green-800">
+                                {{ login_count }}
+                            </p>
+                            <div class="text-xs text-green-600 mt-2">
+                                <span>Cette semaine: {{ login_week_count }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                            <p class="text-sm text-purple-700">Notifications</p>
+                            <p class="text-2xl font-bold text-purple-800">
+                                {{ notifications_count }}
+                            </p>
+                            <div class="text-xs text-purple-600 mt-2">
+                                <span>Dernier mois: {{ notifications_month_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Liste des dernières actions -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-medium text-gray-900">Dernières actions</h3>
+                </div>
+                
+                <div class="divide-y divide-gray-200">
+                    {% if logs %}
+                        {% for log in logs %}
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ log.action }}</p>
+                                        <p class="text-xs text-gray-500">{{ log.date|date:"d/m/Y H:i" }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            {{ log.type }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-6 text-center text-gray-500">
+                            <p>Aucune action récente enregistrée.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

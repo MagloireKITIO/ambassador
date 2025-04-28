@@ -1,0 +1,133 @@
+<!-- backoffice/templates/backoffice/gestion_admins.html -->
+{% extends 'base.html' %}
+
+{% block title %}Gestion des administrateurs | ACTIVA Ambassadeurs{% endblock %}
+
+{% block page_title %}Gestion des administrateurs{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <p class="text-gray-600">Gérez les comptes administrateurs qui peuvent accéder au backoffice.</p>
+        </div>
+        <div>
+            <a href="{% url 'backoffice:ajouter_admin' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i class="fas fa-user-plus mr-2"></i> Ajouter un administrateur
+            </a>
+        </div>
+    </div>
+    
+    <!-- Liste des administrateurs -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-medium text-gray-900">Liste des administrateurs</h3>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Utilisateur
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Email
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Dernière connexion
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Super Admin
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Statut
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for admin in admins %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700">
+                                        {{ admin.first_name|slice:":1"|upper }}{{ admin.last_name|slice:":1"|upper }}
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ admin.get_full_name|default:admin.username }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            @{{ admin.username }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ admin.email }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if admin.last_login %}
+                                    {{ admin.last_login|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    Jamais
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                {% if admin.is_superuser %}
+                                    <span class="text-green-600"><i class="fas fa-check-circle"></i></span>
+                                {% else %}
+                                    <span class="text-gray-400"><i class="fas fa-times-circle"></i></span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                {% if admin.is_active %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Actif
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        Inactif
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="{% url 'backoffice:modifier_admin' admin.id %}" class="text-blue-600 hover:text-blue-900 mr-3">
+                                    <i class="fas fa-edit"></i> Modifier
+                                </a>
+                                
+                                {% if admin.id != request.user.id %}
+                                    {% if admin.is_active %}
+                                        <form method="post" action="{% url 'backoffice:desactiver_admin' admin.id %}" class="inline-block">
+                                            {% csrf_token %}
+                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Êtes-vous sûr de vouloir désactiver cet administrateur ?');">
+                                                <i class="fas fa-user-slash"></i> Désactiver
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" action="{% url 'backoffice:activer_admin' admin.id %}" class="inline-block">
+                                            {% csrf_token %}
+                                            <button type="submit" class="text-green-600 hover:text-green-900">
+                                                <i class="fas fa-user-check"></i> Activer
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-10 text-center text-gray-500">
+                                <p>Aucun administrateur trouvé.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
